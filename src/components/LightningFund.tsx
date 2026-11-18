@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { DEFAULT_MINT, MAX_SATS, MIN_SATS, MintQuoteState, claimInvoice, createInvoice, invoiceState, mintErrorMessage, type Invoice } from '../mint';
+import { storage } from '../storage';
 
 type Phase = 'idle' | 'creating' | 'waiting' | 'minting' | 'claim-failed' | 'error';
 const PRESETS = [100, 1000, 5000, 21000];
@@ -13,8 +14,10 @@ const POLL_MS = 2500;
 export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded: (token: string) => void }) {
   const mint = DEFAULT_MINT;
   const [amount, setAmount] = useState('1000');
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  // An invoice saved before a refresh is picked up again, so a payment is never stranded.
+  const [invoice, setInvoice] = useState<Invoice | null>(() => storage.loadInvoice());
+  const [phase, setPhase] = useState<Phase>(() => (invoice ? 'waiting' : 'idle'));
+  const [resumed] = useState(() => !!invoice);
   const [qr, setQr] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -34,6 +37,7 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
       const token = await claimInvoice(inv);
       // Hand over even if this component has unmounted: the sats must not be dropped.
       onFunded(token);
+      storage.clearInvoice();
       setPhase('idle'); setInvoice(null);
     } catch (e) {
       setError(`Your payment arrived, but collecting the sats failed. ${mintErrorMessage(e)}`);
@@ -50,8 +54,8 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
         const state = await invoiceState(invoice);
         if (!active) return;
         if (state === MintQuoteState.PAID) return void claim(invoice);
-        if (state === MintQuoteState.ISSUED) { setError('These sats were already collected.'); setPhase('error'); return; }
-        if (invoice.expiry && Date.now() / 1000 > invoice.expiry) { setError('This invoice expired. Create a new one.'); setPhase('error'); return; }
+        if (state === MintQuoteState.ISSUED) { storage.clearInvoice(); setError('These sats were already collected.'); setPhase('error'); return; }
+        if (invoice.expiry && Date.now() / 1000 > invoice.expiry) { storage.clearInvoice(); setError('This invoice expired. Create a new one.'); setPhase('error'); return; }
       } catch { /* network blip: keep polling */ }
       if (active) timer = window.setTimeout(tick, POLL_MS);
     };
@@ -61,10 +65,10 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
 
   async function start() {
     setPhase('creating'); setError(''); setCopied(false);
-    try { setInvoice(await createInvoice(mint.url, sats)); setPhase('waiting'); }
+    try { const inv = await createInvoice(mint.url, sats); storage.saveInvoice(inv); setInvoice(inv); setPhase('waiting'); }
     catch (e) { setError(mintErrorMessage(e)); setPhase('error'); }
   }
-  function cancel() { setInvoice(null); setPhase('idle'); setError(''); }
+  function cancel() { storage.clearInvoice(); setInvoice(null); setPhase('idle'); setError(''); }
   async function copyInvoice() {
     if (!invoice) return;
     try { await navigator.clipboard.writeText(invoice.request); setCopied(true); } catch { setCopied(false); }
@@ -77,6 +81,7 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
         <div className="invoice-info">
           <strong className="invoice-amount">{invoice.amount.toLocaleString()} <span>sats</span></strong>
           {phase === 'waiting' && <p className="invoice-status" role="status"><i className="pulse-dot" aria-hidden="true"/>Waiting for payment…</p>}
+          {resumed && phase === 'waiting' && <p className="hint">Picked up your invoice from before. If you already paid, your sats arrive in a moment.</p>}
           {phase === 'minting' && <p className="invoice-status paid" role="status">⚡ Paid! Collecting your sats…</p>}
           {phase === 'claim-failed' && <p className="error" role="alert">{error}</p>}
           {mint.test && phase === 'waiting' && <p className="hint">Testnut pays its own invoices, so this finishes in a few seconds. No real bitcoin moves.</p>}

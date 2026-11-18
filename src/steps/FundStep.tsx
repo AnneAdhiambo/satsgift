@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { LightningFund } from '../components/LightningFund';
+import { PasteFund } from '../components/PasteFund';
+import { MyGifts } from '../components/MyGifts';
 
 type Props = {
-  token: string; demo: boolean; valid: boolean; amount: number; mint: string; error: string; notice: string;
-  onPaste: (raw: string) => void; onDemo: () => void; onFunded: (token: string) => void; onCopy: () => void; onNext: () => void;
+  demo: boolean; valid: boolean; amount: number; mint: string; notice: string; saving: boolean;
+  onDemo: () => void; onFunded: (token: string) => void; onCopy: () => void; onNext: () => void;
 };
 
-export function FundStep({ token, demo, valid, amount, mint, error, notice, onPaste, onDemo, onFunded, onCopy, onNext }: Props) {
+export function FundStep({ demo, valid, amount, mint, notice, saving, onDemo, onFunded, onCopy, onNext }: Props) {
   const [tab, setTab] = useState<'lightning' | 'paste'>('lightning');
   const real = valid && !demo;
   return (
@@ -24,17 +26,14 @@ export function FundStep({ token, demo, valid, amount, mint, error, notice, onPa
         <LightningFund funded={real} onFunded={onFunded}/>
       </div>
       <div role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden={tab !== 'paste'}>
-        <label htmlFor="token">Cashu token</label>
-        <textarea id="token" className="token-input" value={token} placeholder="cashuB…" onChange={e => onPaste(e.target.value)} spellCheck={false} autoComplete="off"/>
-        <button className="text-button" onClick={onDemo}>Try a demo token</button>
-        {error && <p className="error" role="alert">{error}</p>}
+        <PasteFund onFunded={onFunded} onDemo={onDemo}/>
       </div>
 
       {valid && (
         <div className="token-status" role="status">
           <strong>{demo ? 'Demo mode — no real funds' : `✓ ${amount.toLocaleString()} sats ready`}</strong>
           <span>{mint}</span>
-          {real && <small>Keep a backup until you’ve shared the gift: refreshing this page discards it.</small>}
+          {real && <small>{saving ? 'Saved in this browser, so a refresh won’t lose it.' : 'This browser can’t save. Copy the backup token before you refresh.'}</small>}
           {real && <button className="text-button" onClick={onCopy}>Copy backup token</button>}
         </div>
       )}
@@ -43,6 +42,7 @@ export function FundStep({ token, demo, valid, amount, mint, error, notice, onPa
       <div className="navigation token-navigation">
         <button className="primary" disabled={!valid} onClick={onNext}>Choose a format →</button>
       </div>
+      <MyGifts/>
     </div>
   );
 }

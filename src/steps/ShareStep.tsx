@@ -3,10 +3,14 @@ import QRCode from 'qrcode';
 import { GiftCard } from '../components/GiftCard';
 import { GiftReveal } from '../components/GiftReveal';
 import { encodeGift, giftUrl, type Gift } from '../giftLink';
+import { storage } from '../storage';
 
-type Props = { gift: Gift; amount: number; style: CSSProperties; onEdit: () => void; onCopyBackup: () => void; notice: string };
+type Props = {
+  gift: Gift; amount: number; mint: string; style: CSSProperties; notice: string;
+  onEdit: () => void; onCopyBackup: () => void; onStartNew: () => void;
+};
 
-export function ShareStep({ gift, amount, style, onEdit, onCopyBackup, notice }: Props) {
+export function ShareStep({ gift, amount, mint, style, notice, onEdit, onCopyBackup, onStartNew }: Props) {
   const [url, setUrl] = useState('');
   const [qr, setQr] = useState('');
   const [linkError, setLinkError] = useState('');
@@ -23,6 +27,8 @@ export function ShareStep({ gift, amount, style, onEdit, onCopyBackup, notice }:
       .then(encoded => {
         if (!active) return;
         const link = giftUrl(encoded); setUrl(link);
+        // Remember the gift (and its link) so the sender can find it again under "Your gifts".
+        if (!gift.demo) storage.saveGift({ token: gift.token, amount, mint, to: gift.to.trim() || 'someone', from: gift.from, link, createdAt: Date.now() });
         return QRCode.toDataURL(link, { width: 640, margin: 4, errorCorrectionLevel: 'L' })
           .then(src => { if (active) setQr(src); })
           .catch(() => { if (active) setLinkError('This gift is too big for one QR code. Share the link instead.'); });
@@ -96,6 +102,7 @@ export function ShareStep({ gift, amount, style, onEdit, onCopyBackup, notice }:
       <div className="result-actions">
         <button className="secondary" onClick={onEdit}>← Edit gift</button>
         {print && <button className="primary" disabled={!qr} onClick={() => window.print()}>Print / save PDF ↗</button>}
+        <button className="secondary" onClick={onStartNew}>Start a new gift ＋</button>
       </div>
     </div>
   );

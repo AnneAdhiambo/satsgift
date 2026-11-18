@@ -3,12 +3,18 @@ import { Wallet, getEncodedToken, getTokenMetadata, MintQuoteState, CheckStateEn
 
 export type MintOption = { url: string; name: string; test: boolean };
 
-// Day 1: test mint only. Real-money mints (Minibits, Coinos, Macadamia…) are added on Day 2,
-// once freshly minted sats are saved to the browser so a refresh can't lose them.
+// TEST MODE: only test mints, so no real bitcoin can be lost while the app is being built.
+// To go live, add real mints here, e.g. { url: 'https://mint.minibits.cash/Bitcoin', name: 'Minibits', test: false }.
 export const MINTS: MintOption[] = [
   { url: 'https://testnut.cashu.space', name: 'Testnut', test: true },
 ];
 export const DEFAULT_MINT = MINTS[0];
+
+const normalise = (url: string) => url.trim().replace(/\/+$/, '').toLowerCase();
+/** Is this mint one SatsGift accepts? */
+export function findMint(url: string): MintOption | undefined {
+  return MINTS.find(m => normalise(m.url) === normalise(url));
+}
 
 export const MIN_SATS = 1;
 export const MAX_SATS = 100_000;
@@ -47,6 +53,27 @@ export async function claimInvoice(invoice: Invoice): Promise<string> {
   const proofs = await wallet.mintProofsBolt11(invoice.amount, invoice.quote);
   // DLEQ proofs only allow offline verification; dropping them halves the token so gift links and QRs stay small.
   return getEncodedToken({ mint: invoice.mint, proofs, unit: 'sat' }, { removeDleq: true });
+}
+
+/**
+ * NUT-03: swap a pasted token for fresh proofs. This proves the sats are real and unspent,
+ * and the sender's original token stops working, so only the gift holds the sats.
+ * Returns the new token and the amount after the mint's fee.
+ */
+export async function moveIntoGift(token: string): Promise<{ token: string; amount: number }> {
+  const meta = getTokenMetadata(token);
+  if (!findMint(meta.mint)) throw new Error('TEST_MODE');
+  const wallet = await getWallet(meta.mint);
+  try {
+    const proofs = await wallet.receive(token);
+    return {
+      token: getEncodedToken({ mint: meta.mint, proofs, unit: 'sat' }, { removeDleq: true }),
+      amount: proofs.reduce((sum, p) => sum + p.amount.toNumber(), 0),
+    };
+  } catch (e) {
+    if (e instanceof Error && /already spent/i.test(e.message)) throw new Error('SPENT');
+    throw e;
+  }
 }
 
 /** NUT-07: has any proof in this token been spent? `null` when the mint can't be asked. */

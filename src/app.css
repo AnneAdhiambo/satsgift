@@ -108,6 +108,22 @@ input[readonly] { background: var(--sand); color: var(--muted); }
 @keyframes pulse { to { box-shadow: 0 0 0 12px rgb(245 184 61 / 0); } }
 .invoice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
 .token-status .text-button { align-self: flex-start; padding: 4px 0 0; }
+.paste-preview { margin-top: 10px; padding: 16px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--white); }
+.paste-preview p { margin: 0; }
+.paste-preview .primary { margin-top: 14px; }
+.my-gifts { margin-top: 32px; padding-top: 24px; border-top: 1.5px dashed var(--line-strong); }
+.my-gifts h3 { font-size: 22px; margin: 0; }
+.my-gifts ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+.my-gifts li { padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--white); }
+.gift-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.gift-row em { color: var(--muted); }
+.gift-row small { margin-left: 8px; color: var(--muted); }
+.gift-row-actions { display: flex; gap: 16px; }
+.gift-row-actions .text-button { padding: 6px 0 0; font-size: 13px; }
+.text-button.danger { color: #9a2b19; }
+.status-chip { flex: none; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; background: var(--sand-deep); color: var(--muted); }
+.status-chip.waiting { background: var(--sun-tint); color: var(--sun-deep); }
+.status-chip.claimed { background: var(--lagoon-tint); color: var(--lagoon-deep); }
 
 /* ---------- Step 2: formats ---------- */
 .format-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 22px 0 24px; }
