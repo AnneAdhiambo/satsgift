@@ -1,0 +1,66 @@
+/* The gift itself: card, envelope, scratch card, voucher and print.
+   Theme colours arrive as inline custom properties from main.tsx:
+   --accent (stripe), --accent-ink (readable accent text), --paper, --card-ink. */
+.gift-card, .reveal-envelope { --accent: var(--coral); --accent-ink: var(--coral-deep); --paper: #fff6ee; --card-ink: #3a1f1a; }
+
+/* ---------- Card ---------- */
+.gift-card { width: 340px; max-width: 100%; overflow: hidden; border-radius: 16px; background: var(--paper); color: var(--card-ink); text-align: center; box-shadow: 0 22px 50px -18px rgb(31 47 74 / .45); animation: arrive .5s ease-out; }
+.card-stripe { height: 14px; background: repeating-linear-gradient(90deg, var(--accent) 0 18px, var(--paper) 18px 36px); }
+/* Top band is a tiny awning with a scalloped edge. */
+.card-stripe:first-child {
+  height: 26px;
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% 17px no-repeat, radial-gradient(circle at 50% 0, #000 8.5px, #0000 9px) left bottom / 18px 9px repeat-x;
+  mask: linear-gradient(#000 0 0) top / 100% 17px no-repeat, radial-gradient(circle at 50% 0, #000 8.5px, #0000 9px) left bottom / 18px 9px repeat-x;
+}
+.card-content { padding: 14px 22px 20px; }
+.card-brand { font: 700 11px var(--font-body); letter-spacing: .3em; color: var(--accent-ink); }
+.card-kicker { font: italic 600 15px var(--font-display); margin: 6px 0 2px; opacity: .8; }
+.gift-card h2 { font-size: 28px; margin: 0 0 6px; overflow-wrap: anywhere; }
+.handwritten { font: 600 26px/1.15 var(--font-hand); white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 12px; }
+.gift-amount { font: 800 46px var(--font-display); color: var(--accent-ink); margin: 4px 0 12px; }
+.gift-amount span { font: 600 16px var(--font-body); color: var(--card-ink); }
+.qr-area { display: grid; place-items: center; width: 180px; min-height: 180px; margin: auto; overflow: hidden; border-radius: 12px; background: var(--white); box-shadow: 0 0 0 1px rgb(0 0 0 / .08); color: #4d5360; }
+.qr-area img { display: block; width: 100%; }
+.qr-area > p { font-size: 12px; line-height: 1.6; padding: 12px; margin: 0; }
+.demo-qr { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 8px; color: var(--ink); }
+.demo-qr > span { font: 40px var(--font-display); color: var(--coral-deep); }
+.demo-qr strong { font-size: 11px; letter-spacing: .12em; }
+.demo-qr small { font-size: 11px; color: #646a75; }
+.claim { font-size: 12px; margin: 10px 0 0; opacity: .8; }
+.signature { font: 600 22px var(--font-hand); margin: 12px 0 0; overflow-wrap: anywhere; }
+
+/* ---------- Voucher ---------- */
+.gift-card.voucher { width: 400px; border: 2px dashed var(--accent-ink); }
+.claim-guide { margin-top: 20px; padding-top: 16px; border-top: 2px dashed var(--accent-ink); text-align: left; font-size: 13px; line-height: 1.7; }
+.claim-guide ol { padding-left: 18px; margin: 6px 0; }
+.claim-guide small { font-size: 11px; }
+
+/* ---------- Envelope with striped lining ---------- */
+.reveal-envelope { position: relative; width: 340px; max-width: 95%; height: 220px; border: 0; border-radius: 14px; background: var(--paper); color: var(--card-ink); box-shadow: 0 22px 40px -16px rgb(31 47 74 / .45), inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent); animation: arrive .5s ease-out, envelope-wiggle 4s 1.2s ease-in-out infinite; transition: transform .2s; }
+.reveal-envelope:hover { transform: translateY(-3px); }
+.envelope-flap { position: absolute; inset: 0; border-radius: 14px 14px 0 0; background: repeating-linear-gradient(90deg, var(--accent) 0 20px, var(--paper) 20px 40px); clip-path: polygon(0 0, 100% 0, 50% 60%); filter: drop-shadow(0 2px 0 rgb(0 0 0 / .12)); }
+.envelope-seal { position: absolute; top: 104px; left: calc(50% - 26px); display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: radial-gradient(circle at 30% 25%, #ffe08f, var(--sun)); border: 3px solid var(--paper); color: #5a3d00; font: 800 24px var(--font-display); box-shadow: 0 4px 10px rgb(0 0 0 / .18); }
+.envelope-to { position: absolute; left: 14px; right: 14px; bottom: 18px; font: 600 26px var(--font-hand); overflow-wrap: anywhere; }
+.envelope-hint { position: absolute; left: 0; right: 0; bottom: -40px; color: var(--muted); font-size: 14px; font-weight: 600; }
+@keyframes envelope-wiggle { 0%, 80%, 100% { rotate: 0deg; } 84% { rotate: -2deg; } 88% { rotate: 2deg; } 92% { rotate: -1deg; } }
+
+/* ---------- Scratch card ---------- */
+.scratch-container { position: relative; width: 340px; max-width: 100%; }
+.scratch-container canvas { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 16px; touch-action: none; cursor: grab; }
+.scratch-access { position: absolute; left: 25px; right: 25px; bottom: 14px; padding: 8px; border: 1.5px solid rgb(90 61 0 / .35); border-radius: 99px; background: rgb(255 250 240 / .92); color: #5a3d00; font-size: 13px; font-weight: 600; }
+
+/* ---------- Print ---------- */
+@media print {
+  @page { margin: 15mm; size: A4; }
+  html, body { background: white; }
+  .awning, header, .floating-coins, .hero, .stepper, .builder::before, .gift-result > .section-tag, .gift-result > h2, .gift-result > .muted, .result-actions, .result-note, .notice { display: none !important; }
+  main, .workspace, .builder, .full-editor, .gift-stage { width: auto; max-width: none; margin: 0; padding: 0; border: 0; box-shadow: none; background: none; }
+  .gift-stage { display: block; }
+  .gift-card { width: 100%; max-width: 450px; margin: 20px auto; box-shadow: none; animation: none; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  /* Lighter stripes on paper to save ink. */
+  .card-stripe { opacity: .55; }
+  .qr-area { width: 190px; }
+  .gift-card h2 { font-size: 34px; }
+  .handwritten { font-size: 30px; }
+  .claim, .claim-guide small { font-size: 11px; }
+}
