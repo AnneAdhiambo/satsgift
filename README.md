@@ -21,16 +21,26 @@ The production build is in `dist/`.
 
 ## Included
 
-- Four-step token, format, personalisation, and creation flow
-- Cashu v3/v4 decoding through `@cashu/cashu-ts`, with sats-only amount display
-- Cabana-stripe design with coral, lagoon, sunshine and night themes, recipient/sender fields and messages
-- Envelope reveal, pointer/touch scratch card with accessible reveal button, printable voucher/PDF via the browser
-- Local QR generation and copy-token action with error handling
-- Clearly labelled demo previews without redeemable tokens or fake QR codes
-- Responsive layout, keyboard focus styles, reduced motion and print styles
+- **Sender:** add sats (pay a Lightning invoice, or paste a Cashu token) → pick a format → personalise → share
+- **Lightning funding** via a Cashu mint (NUT-04). Day 1 uses the Testnut test mint, which pays its own invoices
+- **Gift links:** the gift (token + card) is compressed into the link’s `#g=…` fragment, which browsers never send to a server
+- **Share:** WhatsApp, the phone’s share sheet, copy link, or a QR of the link. Printed vouchers carry the link QR
+- **Recipient page:** envelope → card or scratch-off → claim with a Cashu wallet. Shows “already claimed” using NUT-07
+- The sender never sees a claimable QR: previews show a hidden claim code
+- Cabana-stripe design with coral, lagoon, sunshine and night themes; responsive, keyboard-friendly, reduced-motion and print styles
+
+## Project layout
+
+```
+src/App.tsx            routes: #g=… → recipient page, otherwise the builder
+src/pages/             Builder (sender) and Recipient
+src/steps/             Fund, Format, Personalise, Share
+src/components/        GiftCard, GiftReveal, Scratch, LightningFund, ThemePicker, Shell
+src/mint.ts            all mint calls (invoice, mint, claimed check)
+src/giftLink.ts        encode/decode gifts in the link
+src/token.ts           token parsing and validation
+```
 
 ## Scope and privacy
 
-Tokens remain in React memory for this browser tab. Refreshing discards the gift. No backend, analytics, local storage, or mint requests are used. Token decoding does not verify signatures or whether funds are unspent. Anyone holding a real token can potentially redeem it; keep it private. Google Fonts loads fonts from Google; token contents are never included in those requests. System fonts work offline.
-
-The digital gift is currently a local preview: recipient links, downloadable interactive gifts, mint validation, and wallet funding are not implemented. Printed vouchers contain the token QR and must be handled privately. Large tokens that exceed QR capacity can still be copied, but printing is disabled for them.
+There is no backend, account or analytics. The app talks only to the Cashu mint (to create invoices, mint sats and check whether a gift was claimed) and to Google Fonts. **The gift link is the money:** whoever opens it first can claim the sats, so share it privately. Until browser saving is added, refreshing the sender page before sharing discards the gift, so copy the backup token. Each mint holds the bitcoin behind its tokens, so only use mints you trust.

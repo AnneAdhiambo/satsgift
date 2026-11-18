@@ -1,7 +1,12 @@
 import { getTokenMetadata } from '@cashu/cashu-ts';
 
+/** Remove whitespace and any cashu: / web+cashu:// URI prefix. */
+export function stripTokenPrefix(raw: string) {
+  return raw.trim().replace(/^web\+cashu:\/\//i, '').replace(/^cashu:\/\//i, '').replace(/^cashu:/i, '');
+}
+
 export function readGiftToken(raw: string) {
-  const token = raw.trim().replace(/^web\+cashu:\/\//i, '').replace(/^cashu:\/\//i, '').replace(/^cashu:/i, '');
+  const token = stripTokenPrefix(raw);
   if (!/^cashu[AB]/.test(token)) throw new Error('Paste a complete cashuA or cashuB token.');
   const decoded = getTokenMetadata(token);
   if (decoded.unit !== 'sat') throw new Error('Please use a token denominated in sats.');

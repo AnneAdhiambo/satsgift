@@ -30,7 +30,9 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing:
 .site-header, main { position: relative; z-index: 1; width: min(1064px, 100% - 48px); margin: 0 auto; }
 .site-header { height: 84px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .logo { display: flex; align-items: center; gap: 12px; font: 800 26px var(--font-display); letter-spacing: -.01em; }
-.logo-coin { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #ffe08f, var(--sun)); box-shadow: inset 0 0 0 2px var(--sun-deep); animation: coin-spin 6s linear infinite; }
+.logo { gap: 10px; }
+.logo-mark { width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 3px 4px rgb(31 47 74 / .18)); transform-origin: 40% 60%; transition: transform .3s cubic-bezier(.3, 1.5, .5, 1); }
+.logo:hover .logo-mark { transform: rotate(-8deg) scale(1.06); }
 .header-tag { font-size: 14px; font-weight: 600; color: var(--muted); border: 1.5px solid var(--line); border-radius: 99px; padding: 5px 14px; background: var(--panel); }
 main { padding-bottom: 64px; }
 .hero { text-align: center; margin: 4px 0 28px; }
@@ -41,7 +43,6 @@ main { padding-bottom: 64px; }
 .floating-coins { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
 .floating-coin { position: absolute; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; color: var(--sun-deep); background: radial-gradient(circle at 30% 30%, #ffe08f, var(--sun)); font: 800 22px var(--font-display); opacity: .2; animation: coin-float 9s ease-in-out infinite; }
 @keyframes coin-float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-26px) rotate(14deg); } }
-@keyframes coin-spin { 50% { transform: rotateY(180deg); } }
 
 /* ---------- Stepper (beach-towel pills) ---------- */
 .stepper { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 0 0 24px; }
@@ -86,6 +87,28 @@ input[readonly] { background: var(--sand); color: var(--muted); }
 .secondary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 0 var(--ink); }
 .secondary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
 
+/* ---------- Step 1: funding ---------- */
+.fund-tabs { display: inline-flex; gap: 4px; padding: 4px; margin: 4px 0 6px; border: 1.5px solid var(--line); border-radius: 99px; background: var(--sand); }
+.fund-tabs button { border: 0; border-radius: 99px; padding: 8px 16px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 700; transition: background-color .2s, color .2s; }
+.fund-tabs button[aria-selected="true"] { background: var(--ink); color: var(--white); }
+.hint { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.mint-chip { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 16px; padding: 6px 12px; border: 1.5px dashed var(--line-strong); border-radius: 12px; background: var(--white); font-size: 13px; }
+.mint-chip em { color: var(--sun-deep); font-style: normal; font-weight: 700; }
+.lightning-form > .primary { margin-top: 18px; }
+.amount-chips button.selected { border-color: var(--ink); background: var(--ink); color: var(--white); }
+.invoice-panel { display: flex; gap: 24px; align-items: center; margin-top: 18px; padding: 20px; border: 1.5px solid var(--line); border-radius: 20px; background: var(--white); }
+.invoice-qr { flex: 0 0 auto; display: grid; place-items: center; width: 220px; height: 220px; border-radius: 14px; background: var(--white); box-shadow: 0 0 0 1.5px var(--line); color: var(--muted); font-size: 13px; }
+.invoice-qr img { width: 100%; display: block; border-radius: 14px; }
+.invoice-info { flex: 1; min-width: 0; }
+.invoice-amount { display: block; font: 800 36px var(--font-display); color: var(--coral-deep); }
+.invoice-amount span { font: 600 15px var(--font-body); color: var(--ink); }
+.invoice-status { display: flex; align-items: center; gap: 10px; margin: 6px 0 0; font-weight: 700; }
+.invoice-status.paid { color: var(--lagoon-deep); }
+.pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 0 0 rgb(245 184 61 / .6); animation: pulse 1.4s ease-out infinite; }
+@keyframes pulse { to { box-shadow: 0 0 0 12px rgb(245 184 61 / 0); } }
+.invoice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
+.token-status .text-button { align-self: flex-start; padding: 4px 0 0; }
+
 /* ---------- Step 2: formats ---------- */
 .format-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 22px 0 24px; }
 .format-option { --band: var(--coral); position: relative; overflow: hidden; text-align: left; padding: 0 20px 22px; border: 1.5px solid var(--line); border-radius: 20px; background: var(--white); color: var(--ink); transition: transform .2s, border-color .2s, box-shadow .2s; }
@@ -123,6 +146,30 @@ input[readonly] { background: var(--sand); color: var(--muted); }
 .result-note { max-width: 520px; margin: 22px auto 0; color: var(--muted); font-size: 13px; }
 .notice { min-height: 18px; margin: 14px 0 0; color: var(--lagoon-deep); font-size: 13px; font-weight: 600; }
 
+/* ---------- Step 4: share (sender) ---------- */
+.share-panel, .preview-panel, .claim-panel, .backup { max-width: 640px; margin: 0 auto 18px; padding: 20px 22px; border: 1.5px solid var(--line); border-radius: 20px; background: var(--white); text-align: left; }
+.share-panel label { margin-top: 0; }
+.link-field { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--muted); text-overflow: ellipsis; }
+.share-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+.link-qr { margin: 16px auto 4px; width: min(300px, 100%); text-align: center; }
+.link-qr img { width: 100%; display: block; border-radius: 14px; box-shadow: 0 0 0 1.5px var(--line); }
+.link-qr figcaption { margin-top: 8px; color: var(--muted); font-size: 13px; }
+.warning-line { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--sun-tint); color: #5a3d00; font-size: 13px; }
+.preview-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.preview-head h3 { font-size: 20px; margin: 0; }
+.preview-head .hint { margin-top: 2px; }
+.preview-panel .gift-stage { padding-bottom: 40px; }
+.backup summary { cursor: pointer; font-weight: 700; }
+.backup[open] summary { margin-bottom: 6px; }
+
+/* ---------- Recipient ---------- */
+.recipient { margin-top: 8px; }
+.claim-panel h3 { font-size: 24px; margin: 0 0 4px; }
+.claim-panel { border-color: var(--lagoon); box-shadow: 0 5px 0 var(--lagoon-deep); animation: arrive .5s ease-out; }
+.claimed-banner { max-width: 640px; margin: 0 auto 10px; padding: 12px 14px; border-radius: 14px; background: var(--coral-tint); color: #9a2b19; font-weight: 600; }
+.result-note .text-button { font-size: 14px; }
+
 @keyframes arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ---------- Responsive ---------- */
@@ -140,7 +187,8 @@ input[readonly] { background: var(--sand); color: var(--muted); }
     mask: linear-gradient(#000 0 0) top / 100% calc(100% - 18px) no-repeat, radial-gradient(circle at 50% 0, #000 17.5px, #0000 18px) left bottom / var(--stripe) 18px repeat-x;
   }
   .site-header { height: 72px; }
-  .logo { font-size: 23px; gap: 9px; }
+  .logo { font-size: 23px; gap: 8px; }
+  .logo-mark { width: 42px; height: 42px; }
   .header-tag { font-size: 12px; padding: 4px 10px; }
   .hero > p { font-size: 15px; }
   .stepper { gap: 6px; }
@@ -155,6 +203,15 @@ input[readonly] { background: var(--sand); color: var(--muted); }
   .input-row { flex-direction: column; gap: 0; }
   .builder-grid, .format-options { grid-template-columns: minmax(0, 1fr); }
   .format-icon { margin-bottom: 6px; }
+  .fund-tabs { display: flex; }
+  .fund-tabs button { flex: 1; white-space: nowrap; padding: 8px 10px; font-size: 13px; }
+  .share-panel, .preview-panel, .claim-panel, .backup { padding: 16px; }
+  .share-actions > * { flex: 1 1 auto; }
+  .preview-head { flex-direction: column; align-items: stretch; }
+  .invoice-panel { flex-direction: column; text-align: center; }
+  .invoice-qr { width: min(240px, 100%); height: auto; aspect-ratio: 1; }
+  .invoice-actions { justify-content: center; }
+  .invoice-status { justify-content: center; }
   .primary, .secondary { font-size: 14px; padding: 12px 18px; }
   .floating-coin { width: 36px; height: 36px; font-size: 18px; }
 }
