@@ -5,6 +5,7 @@ import type { Format } from '../themes';
 export type CardCode =
   | { kind: 'demo' }
   | { kind: 'hidden' }
+  | { kind: 'claimed' }
   | { kind: 'qr'; src: string; alt: string }
   | { kind: 'pending'; text: string };
 
@@ -26,7 +27,8 @@ export function GiftCard({ format, to, from, message, amount, code, claimLine, s
         <div className="qr-area">
           {code.kind === 'demo' && <div className="demo-qr"><span>✧</span><strong>PREVIEW ONLY</strong><small>No redeemable funds</small></div>}
           {code.kind === 'hidden' && <div className="demo-qr"><span>🔒</span><strong>CLAIM CODE HIDDEN</strong><small>Only your recipient sees it</small></div>}
-          {code.kind === 'qr' && <img src={code.src} alt={code.alt}/>}
+          {code.kind === 'claimed' && <div className="demo-qr"><span>✓</span><strong>CLAIMED</strong><small>These sats have been collected</small></div>}
+          {code.kind === 'qr' &&<img src={code.src} alt={code.alt}/>}
           {code.kind === 'pending' && <p>{code.text}</p>}
         </div>
         <p className="claim">{claimLine}</p>

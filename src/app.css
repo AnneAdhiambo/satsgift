@@ -185,6 +185,15 @@ a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .claim-panel { border-color: var(--lagoon); box-shadow: 0 5px 0 var(--lagoon-deep); animation: arrive .5s ease-out; }
 .claimed-banner { max-width: 640px; margin: 0 auto 10px; padding: 12px 14px; border-radius: 14px; background: var(--coral-tint); color: #9a2b19; font-weight: 600; }
 .result-note .text-button { font-size: 14px; }
+.claim-panel .fund-tabs { margin: 10px 0 14px; }
+.lightning-claim label { margin-top: 4px; }
+.lightning-claim .warning-line { margin: 0 0 14px; }
+.pay-summary { padding: 16px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--sand); }
+.pay-summary p { margin: 0; }
+.pay-summary > p:first-child { font-size: 18px; }
+.paid-panel { padding: 16px; border-radius: 16px; background: var(--lagoon-tint); animation: arrive .5s ease-out; }
+.paid-title { margin: 0; font: 800 22px var(--font-display); color: var(--lagoon-deep); }
+
 
 @keyframes arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 

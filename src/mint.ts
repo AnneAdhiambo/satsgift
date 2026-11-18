@@ -1,5 +1,5 @@
 // Everything that talks to a Cashu mint lives here.
-import { Wallet, getEncodedToken, getTokenMetadata, MintQuoteState, CheckStateEnum } from '@cashu/cashu-ts';
+import { Wallet, getEncodedToken, getDecodedToken, getTokenMetadata, MintQuoteState, MeltQuoteState, CheckStateEnum, type MeltQuoteBolt11Response, type Proof } from '@cashu/cashu-ts';
 
 export type MintOption = { url: string; name: string; test: boolean };
 
@@ -90,3 +90,68 @@ export function mintErrorMessage(e: unknown): string {
   if (e instanceof TypeError) return 'Couldn’t reach the mint. Check your connection and try again.';
   return e instanceof Error && e.message ? `The mint said: ${e.message}` : 'Something went wrong talking to the mint.';
 }
+
+// ---------- Paying out to Lightning (NUT-05 melt) ----------
+
+const sum = (proofs: Proof[]) => proofs.reduce((s, p) => s + p.amount.toNumber(), 0);
+
+async function giftProofs(token: string) {
+  const meta = getTokenMetadata(token);
+  if (!findMint(meta.mint)) throw new Error('TEST_MODE');
+  const wallet = await getWallet(meta.mint);
+  const proofs = getDecodedToken(token, wallet.keyChain.getKeysets().map(k => k.id)).proofs;
+  return { wallet, proofs, mint: meta.mint, available: sum(proofs), inputFee: wallet.getFeesForProofs(proofs).toNumber() };
+}
+
+/** A priced payment. The mint holds back `feeReserve` for routing and returns the unused part as change. */
+export type PayQuote = { quote: MeltQuoteBolt11Response; amount: number; feeReserve: number; inputFee: number; available: number };
+export const payTotal = (q: PayQuote) => q.amount + q.feeReserve + q.inputFee;
+
+/** Ask the mint what paying this invoice from the gift would cost. */
+export async function quoteInvoice(token: string, invoice: string): Promise<PayQuote> {
+  const g = await giftProofs(token);
+  const quote = await g.wallet.createMeltQuoteBolt11(invoice);
+  return { quote, amount: quote.amount.toNumber(), feeReserve: quote.fee_reserve.toNumber(), inputFee: g.inputFee, available: g.available };
+}
+
+/**
+ * For a Lightning address: find the largest payment that still fits after fees.
+ * `invoiceFor(sats)` fetches an invoice from the address for that amount.
+ */
+export async function quoteMax(token: string, invoiceFor: (sats: number) => Promise<string>): Promise<PayQuote> {
+  const g = await giftProofs(token);
+  let sats = Math.floor((g.available - g.inputFee) / 1.02); // first guess: ~2% routing reserve
+  for (let i = 0; i < 4; i++) {
+    if (sats < 1) break;
+    const q = await quoteInvoice(token, await invoiceFor(sats));
+    const over = payTotal(q) - q.available;
+    if (over <= 0) return q;
+    sats -= over;
+  }
+  throw new Error('TOO_SMALL');
+}
+
+export type PayResult = { state: MeltQuoteState; sent: number; change: string | null; changeAmount: number };
+
+/** Pay the quote with the whole gift. Unused fee reserve comes back as a small change token. */
+export async function payQuote(token: string, q: PayQuote): Promise<PayResult> {
+  const g = await giftProofs(token);
+  try {
+    const res = await g.wallet.meltProofsBolt11(q.quote, g.proofs);
+    const changeAmount = sum(res.change);
+    return {
+      state: res.quote.state, sent: q.amount, changeAmount,
+      change: changeAmount ? getEncodedToken({ mint: g.mint, proofs: res.change, unit: 'sat' }, { removeDleq: true }) : null,
+    };
+  } catch (e) {
+    if (e instanceof Error && /already spent/i.test(e.message)) throw new Error('SPENT');
+    throw e;
+  }
+}
+
+/** For a payment still in flight. */
+export async function paymentState(mintUrl: string, quoteId: string): Promise<MeltQuoteState> {
+  const wallet = await getWallet(mintUrl);
+  return (await wallet.checkMeltQuoteBolt11(quoteId)).state;
+}
+export { MeltQuoteState };

@@ -28,7 +28,10 @@ The production build is in `dist/`.
 - **Your gifts:** every gift made in this browser, with Waiting / Claimed status (NUT-07)
 - **Gift links:** the gift (token + card) is compressed into the link’s `#g=…` fragment, which browsers never send to a server
 - **Share:** WhatsApp, the phone’s share sheet, copy link, or a QR of the link. Printed vouchers carry the link QR
-- **Recipient page:** envelope → card or scratch-off → claim with a Cashu wallet. Shows “already claimed” using NUT-07
+- **Recipient page:** envelope → card or scratch-off → claim. Shows “already claimed” using NUT-07
+- **Claim to Lightning** (NUT-05 melt): paste a Lightning address (LNURL-pay, e.g. a Tando `07…@bitcoin.co.ke` address for M-Pesa) or an invoice; fees are shown first and unused fee reserve comes back as a leftover token
+- **Claim to a Cashu wallet:** open in wallet, scan the card QR, or copy the token
+- In test mode, **“Use a test invoice”** makes a signed throwaway invoice so payouts can be tried without a wallet
 - The sender never sees a claimable QR: previews show a hidden claim code
 - Cabana-stripe design with coral, lagoon, sunshine and night themes; responsive, keyboard-friendly, reduced-motion and print styles
 
@@ -41,6 +44,8 @@ src/steps/             Fund, Format, Personalise, Share
 src/components/        GiftCard, GiftReveal, Scratch, LightningFund, ThemePicker, Shell
 src/mint.ts            all mint calls (invoice, mint, swap, claimed check) and the allowed mints
 src/storage.ts         browser saving: draft, pending invoice, your gifts
+src/lnurl.ts           Lightning addresses → invoices (LUD-16)
+src/testInvoice.ts     test-mode only: signed throwaway BOLT11 invoices
 src/giftLink.ts        encode/decode gifts in the link
 src/token.ts           token parsing and validation
 ```
