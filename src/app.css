@@ -28,10 +28,10 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing:
 
 /* ---------- Header & hero ---------- */
 .site-header, main { position: relative; z-index: 1; width: min(1064px, 100% - 48px); margin: 0 auto; }
-.site-header { height: 84px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.logo { display: flex; align-items: center; gap: 12px; font: 800 26px var(--font-display); letter-spacing: -.01em; }
+.site-header { height: 104px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.logo { display: flex; align-items: center; gap: 12px; font: 800 30px var(--font-display); letter-spacing: -.01em; }
 .logo { gap: 10px; }
-.logo-mark { width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 3px 4px rgb(31 47 74 / .18)); transform-origin: 40% 60%; transition: transform .3s cubic-bezier(.3, 1.5, .5, 1); }
+.logo-mark { width: 76px; height: 76px; object-fit: contain; filter: drop-shadow(0 3px 4px rgb(31 47 74 / .18)); transform-origin: 40% 60%; transition: transform .3s cubic-bezier(.3, 1.5, .5, 1); }
 .logo:hover .logo-mark { transform: rotate(-8deg) scale(1.06); }
 .header-tag { font-size: 14px; font-weight: 600; color: var(--muted); border: 1.5px solid var(--line); border-radius: 99px; padding: 5px 14px; background: var(--panel); }
 main { padding-bottom: 64px; }
@@ -41,8 +41,31 @@ main { padding-bottom: 64px; }
 .hero > p { color: var(--muted); font-size: 18px; max-width: 600px; margin: 0 auto; }
 
 .floating-coins { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
-.floating-coin { position: absolute; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; color: var(--sun-deep); background: radial-gradient(circle at 30% 30%, #ffe08f, var(--sun)); font: 800 22px var(--font-display); opacity: .2; animation: coin-float 9s ease-in-out infinite; }
-@keyframes coin-float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-26px) rotate(14deg); } }
+/* Glass coins: see-through, sized to the side margins and centred in them, so they never cover the UI. */
+.floating-coins { --g: max(0px, (100vw - 1064px) / 2); --s: clamp(0px, calc(var(--g) - 36px), 132px); }
+.floating-coin {
+  position: absolute; display: grid; place-items: center;
+  width: var(--s); aspect-ratio: 1; border-radius: 50%;
+  font: 800 calc(var(--s) * .46)/1 var(--font-display); color: rgb(148 96 10 / .32);
+  background:
+    radial-gradient(circle at 30% 22%, rgb(255 255 255 / .8), rgb(255 255 255 / 0) 38%),
+    linear-gradient(145deg, rgb(255 236 179 / .32), rgb(245 184 61 / .08) 60%, rgb(232 85 62 / .06));
+  border: 1.5px solid rgb(255 255 255 / .85);
+  box-shadow: inset 0 2px 6px rgb(255 255 255 / .9), inset 0 -6px 16px rgb(148 96 10 / .10), 0 14px 32px -14px rgb(31 47 74 / .22);
+  -webkit-backdrop-filter: blur(6px) saturate(140%); backdrop-filter: blur(6px) saturate(140%);
+  animation: coin-float 14s ease-in-out infinite;
+}
+.floating-coin.left { left: calc((var(--g) - var(--s)) / 2); }
+.floating-coin.right { right: calc((var(--g) - var(--s)) / 2); }
+.floating-coin::after { /* a slow shine sweeping across the glass */
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(115deg, transparent 35%, rgb(255 255 255 / .6) 50%, transparent 65%) -150% 0 / 250% 100% no-repeat;
+  animation: coin-shine 7s ease-in-out infinite;
+}
+@keyframes coin-float { 0%, 100% { transform: translateY(0) rotate(-10deg); } 50% { transform: translateY(-40px) rotate(10deg); } }
+@keyframes coin-shine { 0%, 60% { background-position: -150% 0; } 85%, 100% { background-position: 150% 0; } }
+/* Narrow screens have no free margin: no coins rather than coins on top of the UI. */
+@media (max-width: 1200px) { .floating-coins { display: none; } }
 
 /* ---------- Stepper (beach-towel pills) ---------- */
 .stepper { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 0 0 24px; }
@@ -216,9 +239,9 @@ a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
     -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 18px) no-repeat, radial-gradient(circle at 50% 0, #000 17.5px, #0000 18px) left bottom / var(--stripe) 18px repeat-x;
     mask: linear-gradient(#000 0 0) top / 100% calc(100% - 18px) no-repeat, radial-gradient(circle at 50% 0, #000 17.5px, #0000 18px) left bottom / var(--stripe) 18px repeat-x;
   }
-  .site-header { height: 72px; }
+  .site-header { height: 84px; }
   .logo { font-size: 23px; gap: 8px; }
-  .logo-mark { width: 42px; height: 42px; }
+  .logo-mark { width: 56px; height: 56px; }
   .header-tag { font-size: 12px; padding: 4px 10px; }
   .hero > p { font-size: 15px; }
   .stepper { gap: 6px; }
@@ -243,7 +266,6 @@ a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
   .invoice-actions { justify-content: center; }
   .invoice-status { justify-content: center; }
   .primary, .secondary { font-size: 14px; padding: 12px 18px; }
-  .floating-coin { width: 36px; height: 36px; font-size: 18px; }
 }
 @media (max-width: 440px) {
   /* Keep the stepper on one line: only the current step shows its label. */
