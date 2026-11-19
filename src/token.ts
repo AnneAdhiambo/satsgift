@@ -16,3 +16,9 @@ export function readGiftToken(raw: string) {
   if (!['https:', 'http:'].includes(url.protocol)) throw new Error('The mint address is invalid.');
   return { token, amount, mint: decoded.mint };
 }
+
+/** The value of each proof ("coin") in a token, largest first, e.g. [512, 256, 128, 64, 32, 8]. */
+export function proofAmounts(raw: string): number[] {
+  try { return getTokenMetadata(stripTokenPrefix(raw)).incompleteProofs.map(p => p.amount.toNumber()).sort((a, b) => b - a); }
+  catch { return []; }
+}

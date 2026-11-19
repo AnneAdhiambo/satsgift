@@ -24,7 +24,8 @@ The production build is in `dist/`.
 - **Demo gift:** “Try a demo gift” on step 1 walks through the whole flow, including the M-Pesa claim, with no sats and no network calls
 - **Sender:** add sats (pay a Lightning invoice, or paste a Cashu token) → pick a format → personalise → share
 - **Test mode:** only test mints are accepted (Testnut pays its own invoices). To go live, add real mints to `MINTS` in `src/mint.ts`
-- **Lightning funding** via a Cashu mint (NUT-04); an invoice paid across a refresh is still collected
+- **Mint Cashu ecash** (NUT-04) with a live tracker: mint quote → invoice paid → blind signatures (NUT-00) → token ready; an invoice paid across a refresh is still collected
+- **Ecash shown as coins:** each proof (512, 256, 128…) with a “View token” toggle, plus a short “How does Cashu work?” explainer and the NUTs used in the footer
 - **Pasted tokens** are checked and swapped at the mint (NUT-03), so spent or fake tokens are caught
 - **Your gifts:** every gift made in this browser, with Waiting / Claimed status (NUT-07)
 - **Gift links:** the gift (token + card) is compressed into the link’s `#g=…` fragment, which browsers never send to a server

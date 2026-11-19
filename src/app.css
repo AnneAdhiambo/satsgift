@@ -153,6 +153,35 @@ input[readonly] { background: var(--sand); color: var(--muted); }
 .status-chip.waiting { background: var(--sun-tint); color: var(--sun-deep); }
 .status-chip.claimed { background: var(--lagoon-tint); color: var(--lagoon-deep); }
 
+/* ---------- Cashu: mint tracker, ecash coins, explainer, footer ---------- */
+.mint-steps { list-style: none; margin: 16px 0 12px; padding: 0; display: grid; gap: 8px; }
+.mint-steps li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--white); transition: background-color .3s, border-color .3s, opacity .3s; }
+.mint-steps li.todo { opacity: .55; }
+.mint-steps li.active { border-color: var(--sun); background: var(--sun-tint); }
+.mint-steps li.done { border-color: #bfe3dd; background: var(--lagoon-tint); }
+.mint-step-dot { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--sand-deep); font-weight: 800; font-size: 13px; }
+.mint-steps li.done .mint-step-dot { background: var(--lagoon-deep); color: var(--white); }
+.mint-steps li.active .mint-step-dot { background: var(--sun); color: #5a3d00; animation: pulse 1.4s ease-out infinite; }
+.mint-steps b { font-size: 15px; }
+.mint-steps code, .site-footer code { padding: 1px 6px; border-radius: 6px; background: rgb(31 47 74 / .08); color: var(--ink); font-size: 11px; }
+.mint-steps small { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ecash { margin-top: 8px; }
+.ecash-coins { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ecash-coin { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; color: #5a3d00; font: 800 13px var(--font-body); background: radial-gradient(circle at 30% 25%, #fff3c4, var(--sun) 70%); box-shadow: inset 0 0 0 2px rgb(148 96 10 / .35), 0 3px 0 rgb(148 96 10 / .35); animation: coin-pop .45s cubic-bezier(.3, 1.5, .5, 1) both; }
+@keyframes coin-pop { from { transform: scale(.4) translateY(8px); opacity: 0; } }
+.ecash-actions { display: flex; flex-wrap: wrap; gap: 16px; }
+.ecash-actions .text-button { padding: 4px 0 0; }
+.token-view { margin-top: 8px; min-height: 96px; font-size: 12px; }
+.cashu-explainer { margin-top: 20px; padding: 14px 16px; border: 1.5px dashed var(--line-strong); border-radius: 16px; background: var(--white); }
+.cashu-explainer summary { cursor: pointer; font-weight: 700; }
+.cashu-flow { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 12px 0; padding: 0; font-weight: 700; font-size: 14px; }
+.cashu-flow li:not(:last-child)::after { content: "→"; margin-left: 10px; color: var(--muted); font-weight: 400; }
+.cashu-points { display: grid; gap: 6px; margin: 0; padding-left: 18px; font-size: 14px; }
+.site-footer { position: relative; z-index: 1; width: min(1064px, 100% - 48px); margin: 0 auto; padding-bottom: 40px; text-align: center; color: var(--muted); font-size: 13px; }
+.site-footer p { margin: 4px 0; }
+.site-footer a { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
 /* ---------- Step 2: formats ---------- */
 .format-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 22px 0 24px; }
 .format-option { --band: var(--coral); position: relative; overflow: hidden; text-align: left; padding: 0 20px 22px; border: 1.5px solid var(--line); border-radius: 20px; background: var(--white); color: var(--ink); transition: transform .2s, border-color .2s, box-shadow .2s; }
@@ -233,7 +262,7 @@ a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
   .live-preview { padding: 14px; }
 }
 @media (max-width: 650px) {
-  .site-header, main { width: calc(100% - 32px); }
+  .site-header, main, .site-footer { width: calc(100% - 32px); }
   .awning { height: 48px; --stripe: 36px; }
   .awning::before {
     -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 18px) no-repeat, radial-gradient(circle at 50% 0, #000 17.5px, #0000 18px) left bottom / var(--stripe) 18px repeat-x;

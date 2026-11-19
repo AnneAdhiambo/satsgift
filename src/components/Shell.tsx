@@ -15,5 +15,11 @@ export function Shell({ children, tag = 'Gift · Scratch · Print' }: { children
       <span className="header-tag">{tag}</span>
     </header>
     <main>{children}</main>
+    <footer className="site-footer">
+      <p>Built on <a href="https://cashu.space" target="_blank" rel="noopener noreferrer">Cashu</a> 🥜 open-source ecash for bitcoin</p>
+      <p className="nuts" aria-label="Cashu specifications used">
+        <code>NUT-00</code> ecash &amp; blind signatures · <code>NUT-03</code> swap · <code>NUT-04</code> mint · <code>NUT-05</code> melt · <code>NUT-07</code> spent check
+      </p>
+    </footer>
   </>;
 }

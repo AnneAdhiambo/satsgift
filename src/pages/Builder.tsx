@@ -90,7 +90,7 @@ export function Builder() {
         ))}
       </nav>
       <section className={`builder ${step === 4 ? 'final-builder' : ''}`}>
-        {step === 1 && <FundStep demo={funds.demo} valid={valid} amount={funds.amount} mint={funds.mint} notice={notice} saving={saving}
+        {step === 1 && <FundStep token={funds.token} demo={funds.demo} valid={valid} amount={funds.amount} mint={funds.mint} notice={notice} saving={saving}
           onDemo={tryDemo} onFunded={onFunded} onCopy={copyToken} onNext={() => go(2)}/>}
         {step === 2 && <FormatStep amount={funds.amount} format={format} onChange={setFormat} onBack={() => go(1)} onNext={() => go(3)}/>}
         {step === 3 && <PersonaliseStep theme={theme} to={to} from={from} message={message} card={previewCard}

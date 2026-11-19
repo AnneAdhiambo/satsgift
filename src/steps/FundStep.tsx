@@ -2,23 +2,25 @@ import { useState } from 'react';
 import { LightningFund } from '../components/LightningFund';
 import { PasteFund } from '../components/PasteFund';
 import { MyGifts } from '../components/MyGifts';
+import { EcashCoins } from '../components/EcashCoins';
+import { CashuExplainer } from '../components/CashuExplainer';
 
 type Props = {
-  demo: boolean; valid: boolean; amount: number; mint: string; notice: string; saving: boolean;
+  token: string; demo: boolean; valid: boolean; amount: number; mint: string; notice: string; saving: boolean;
   onDemo: () => void; onFunded: (token: string) => void; onCopy: () => void; onNext: () => void;
 };
 
-export function FundStep({ demo, valid, amount, mint, notice, saving, onDemo, onFunded, onCopy, onNext }: Props) {
+export function FundStep({ token, demo, valid, amount, mint, notice, saving, onDemo, onFunded, onCopy, onNext }: Props) {
   const [tab, setTab] = useState<'lightning' | 'paste'>('lightning');
   const real = valid && !demo;
   return (
     <div className="token-editor editor">
-      <h2>Add your sats</h2>
-      <p className="muted">Pay a Lightning invoice, or paste a Cashu token you already have. Everything happens in this browser.</p>
+      <h2>Get your Cashu ecash</h2>
+      <p className="muted">Mint fresh ecash from a Cashu mint, or paste a Cashu token you already have. Everything happens in this browser.</p>
       <p className="demo-bar">✨ Just exploring? <button className="text-button" onClick={onDemo}>Try a demo gift</button> No sats needed: walk through the card, the scratch-off and the M-Pesa claim.</p>
 
       <div className="fund-tabs" role="tablist" aria-label="How to add sats">
-        <button role="tab" id="tab-lightning" aria-controls="panel-lightning" aria-selected={tab === 'lightning'} onClick={() => setTab('lightning')}>⚡ Pay with Lightning</button>
+        <button role="tab" id="tab-lightning" aria-controls="panel-lightning" aria-selected={tab === 'lightning'} onClick={() => setTab('lightning')}>🥜 Mint Cashu ecash</button>
         <button role="tab" id="tab-paste" aria-controls="panel-paste" aria-selected={tab === 'paste'} onClick={() => setTab('paste')}>Paste a token</button>
       </div>
 
@@ -35,10 +37,11 @@ export function FundStep({ demo, valid, amount, mint, notice, saving, onDemo, on
           <strong>{demo ? 'Demo mode — no real funds' : `✓ ${amount.toLocaleString()} sats ready`}</strong>
           <span>{mint}</span>
           {real && <small>{saving ? 'Saved in this browser, so a refresh won’t lose it.' : 'This browser can’t save. Copy the backup token before you refresh.'}</small>}
-          {real && <button className="text-button" onClick={onCopy}>Copy backup token</button>}
+          {real && <EcashCoins token={token} onCopy={onCopy}/>}
         </div>
       )}
       <p role="status" className="notice">{notice}</p>
+      <CashuExplainer/>
 
       <div className="navigation token-navigation">
         <button className="primary" disabled={!valid} onClick={onNext}>Choose a format →</button>

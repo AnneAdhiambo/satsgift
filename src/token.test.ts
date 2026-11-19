@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Amount, getEncodedToken } from '@cashu/cashu-ts';
-import { readGiftToken } from './token.ts';
+import { proofAmounts, readGiftToken } from './token.ts';
 
 // Syntactically complete test proofs only. These are not signed or redeemable.
 const proof = { id: '009a1f293253e41e', amount: 512, secret: 'test-only-not-money', C: '02' + 'ab'.repeat(32) };
@@ -20,4 +20,10 @@ test('reads CBOR tokens including shortened v2 keyset IDs without contacting a m
 test('rejects malformed tokens, wrong units, empty proofs, bad mint URLs and unsafe amounts', () => {
   const entry = (proofs: unknown[], mint = 'https://mint.example.com') => ({ token: [{ mint, proofs }] });
   for (const token of ['', 'cashuBbroken', 'cashuAdemo', legacy({ unit: 'usd' }), legacy(entry([])), legacy(entry([{ ...proof, amount: -1 }])), legacy(entry([{ ...proof, C: 'invalid' }])), legacy(entry([proof], 'javascript:alert(1)')), legacy(entry([{ ...proof, amount: '9007199254740992' }]))]) assert.throws(() => readGiftToken(token));
+});
+
+test('proofAmounts lists each coin, largest first', () => {
+  assert.deepEqual(proofAmounts(legacy()), [512, 128]);
+  assert.deepEqual(proofAmounts('cashu:' + legacy()), [512, 128]);
+  assert.deepEqual(proofAmounts('not a token'), []);
 });

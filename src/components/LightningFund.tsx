@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { DEFAULT_MINT, MAX_SATS, MIN_SATS, MintQuoteState, claimInvoice, createInvoice, invoiceState, mintErrorMessage, type Invoice } from '../mint';
 import { storage } from '../storage';
+import { MintSteps } from './MintSteps';
 
-type Phase = 'idle' | 'creating' | 'waiting' | 'minting' | 'claim-failed' | 'error';
+type Phase = 'idle' | 'creating' | 'waiting' | 'minting' | 'claim-failed' | 'error' | 'done';
+const pause = (ms: number) => new Promise(r => setTimeout(r, ms));
 const PRESETS = [100, 1000, 5000, 21000];
 const POLL_MS = 2500;
 
@@ -34,11 +36,12 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
   async function claim(inv: Invoice) {
     setPhase('minting'); setError('');
     try {
+      await pause(600); // let each step of the tracker be seen
       const token = await claimInvoice(inv);
       // Hand over even if this component has unmounted: the sats must not be dropped.
       onFunded(token);
       storage.clearInvoice();
-      setPhase('idle'); setInvoice(null);
+      setPhase('done'); setInvoice(null);
     } catch (e) {
       setError(`Your payment arrived, but collecting the sats failed. ${mintErrorMessage(e)}`);
       setPhase('claim-failed');
@@ -74,15 +77,23 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
     try { await navigator.clipboard.writeText(invoice.request); setCopied(true); } catch { setCopied(false); }
   }
 
+  if (phase === 'creating') return <MintSteps current={0} test={mint.test}/>;
+
+  if (phase === 'done') return <>
+    <MintSteps current={4} test={mint.test}/>
+    <button className="text-button" onClick={() => setPhase('idle')}>Mint a different amount</button>
+  </>;
+
   if (invoice && (phase === 'waiting' || phase === 'minting' || phase === 'claim-failed')) {
-    return (
+    return <>
+      <MintSteps current={phase === 'waiting' ? 1 : 2} test={mint.test}/>
       <div className="invoice-panel">
         <div className="invoice-qr">{qr ? <img src={qr} alt={`Lightning invoice for ${invoice.amount.toLocaleString()} sats`}/> : <span>Preparing invoice…</span>}</div>
         <div className="invoice-info">
           <strong className="invoice-amount">{invoice.amount.toLocaleString()} <span>sats</span></strong>
           {phase === 'waiting' && <p className="invoice-status" role="status"><i className="pulse-dot" aria-hidden="true"/>Waiting for payment…</p>}
           {resumed && phase === 'waiting' && <p className="hint">Picked up your invoice from before. If you already paid, your sats arrive in a moment.</p>}
-          {phase === 'minting' && <p className="invoice-status paid" role="status">⚡ Paid! Collecting your sats…</p>}
+          {phase === 'minting' && <p className="invoice-status paid" role="status">⚡ Paid! The mint is blind-signing your ecash…</p>}
           {phase === 'claim-failed' && <p className="error" role="alert">{error}</p>}
           {mint.test && phase === 'waiting' && <p className="hint">Testnut pays its own invoices, so this finishes in a few seconds. No real bitcoin moves.</p>}
           <div className="invoice-actions">
@@ -96,7 +107,7 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
           </div>
         </div>
       </div>
-    );
+    </>;
   }
 
   return (
@@ -110,8 +121,8 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
       </div>
       <p id="ln-amount-help" className="hint">{amountOk ? (mint.test ? 'Free test sats: Testnut pays this invoice for you within a few seconds.' : 'Pay from any Lightning wallet.') : `Choose between ${MIN_SATS} and ${MAX_SATS.toLocaleString()} sats.`}</p>
       {phase === 'error' && <p className="error" role="alert">{error}</p>}
-      <button className="primary" disabled={!amountOk || phase === 'creating'} onClick={start}>
-        {phase === 'creating' ? 'Creating invoice…' : 'Create Lightning invoice ⚡'}
+      <button className="primary" disabled={!amountOk} onClick={start}>
+        Mint ecash 🥜
       </button>
     </div>
   );
