@@ -49,3 +49,15 @@ export async function invoiceFor(params: PayParams, sats: number, fetchJson: Fet
   if (typeof data.pr !== 'string' || !INVOICE.test(data.pr)) throw bad('The Lightning address sent back something that isn’t an invoice.');
   return data.pr.toLowerCase();
 }
+
+/**
+ * M-Pesa via Tando: every Safaricom M-Pesa number has a Lightning address,
+ * 07XXXXXXXX@bitcoin.co.ke, and payments arrive as shillings. Accepts 0712 345 678,
+ * +254712345678, 254712345678 or 712345678. Returns null if it isn't a Kenyan mobile number.
+ */
+export function tandoAddress(phone: string): string | null {
+  let digits = phone.replace(/[\s\-().]/g, '').replace(/^\+/, '');
+  if (/^254\d{9}$/.test(digits)) digits = '0' + digits.slice(3);
+  else if (/^[71]\d{8}$/.test(digits)) digits = '0' + digits;
+  return /^0[71]\d{8}$/.test(digits) ? `${digits}@bitcoin.co.ke` : null;
+}

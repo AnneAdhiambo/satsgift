@@ -33,3 +33,12 @@ test('invoiceFor asks for millisats and validates the invoice', async () => {
   await assert.rejects(invoiceFor({ callback: 'https://w.example/cb', minSats: 10, maxSats: 50 }, 5, reply({})), /at least 10/);
   await assert.rejects(invoiceFor({ callback: 'https://w.example/cb', minSats: 1, maxSats: 50 }, 5, reply({ pr: 'not-an-invoice' })), /isn’t an invoice/);
 });
+
+test('tandoAddress turns Kenyan mobile numbers into Tando addresses', async () => {
+  const { tandoAddress } = await import('./lnurl.ts');
+  for (const n of ['0712345678', '0712 345 678', '+254712345678', '254712345678', '712345678', '0712-345-678'])
+    assert.equal(tandoAddress(n), '0712345678@bitcoin.co.ke', n);
+  assert.equal(tandoAddress('0112345678'), '0112345678@bitcoin.co.ke');
+  for (const n of ['', '12345', '0812345678', '+255712345678', '07123456789'])
+    assert.equal(tandoAddress(n), null, n);
+});

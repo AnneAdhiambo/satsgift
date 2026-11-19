@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { LnurlError, invoiceFor, lookupAddress, parsePayTarget } from '../lnurl';
+import type { MeltQuoteBolt11Response } from '@cashu/cashu-ts';
+import { LnurlError, invoiceFor, lookupAddress, parsePayTarget, tandoAddress } from '../lnurl';
 import { makeTestInvoice } from '../testInvoice';
 import { MeltQuoteState, findMint, mintErrorMessage, payQuote, payTotal, paymentState, quoteInvoice, quoteMax, type PayQuote, type PayResult } from '../mint';
 
 type Phase = 'idle' | 'quoting' | 'ready' | 'paying' | 'pending' | 'done' | 'error';
+type Mode = 'mpesa' | 'lightning';
 
 function explain(e: unknown): string {
   if (e instanceof LnurlError) return e.message;
@@ -14,9 +16,19 @@ function explain(e: unknown): string {
   return mintErrorMessage(e);
 }
 
-/** Claim a gift straight to a Lightning address or invoice: quote → confirm → pay. */
-export function LightningClaim({ token, mint, onPaid }: { token: string; mint: string; onPaid: () => void }) {
+/** Demo gifts have no sats: price them like a real mint would (≈2% reserve + 1 sat fee) without any network calls. */
+function demoQuote(available: number): PayQuote {
+  const feeReserve = Math.max(1, Math.ceil(available * 0.02)), inputFee = 1;
+  return { quote: { quote: 'demo' } as unknown as MeltQuoteBolt11Response, amount: available - feeReserve - inputFee, feeReserve, inputFee, available };
+}
+
+type Props = { token: string; mint: string; amount: number; demo: boolean; onPaid: () => void };
+
+/** Claim a gift to M-Pesa (via Tando) or any Lightning address/invoice: quote → confirm → pay. */
+export function LightningClaim({ token, mint, amount, demo, onPaid }: Props) {
+  const [mode, setMode] = useState<Mode>('mpesa');
   const [input, setInput] = useState('');
+  const [phone, setPhone] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [quote, setQuote] = useState<PayQuote | null>(null);
   const [target, setTarget] = useState('');
@@ -24,19 +36,29 @@ export function LightningClaim({ token, mint, onPaid }: { token: string; mint: s
   const [result, setResult] = useState<PayResult | null>(null);
   const [note, setNote] = useState('');
   const test = !!findMint(mint)?.test;
+  const busy = phase === 'quoting' || phase === 'paying';
 
   async function priced(get: () => Promise<PayQuote>, label: string) {
     setPhase('quoting'); setError(''); setQuote(null);
-    try { setQuote(await get()); setTarget(label); setPhase('ready'); }
+    try { setQuote(demo ? demoQuote(amount) : await get()); setTarget(label); setPhase('ready'); }
     catch (e) { setError(explain(e)); setPhase('error'); }
   }
+  const fail = (message: string) => { setError(message); setPhase('error'); };
 
-  function check() {
+  /** Pay a Lightning address as much as the gift allows after fees. */
+  const toAddress = (address: string, label: string) =>
+    priced(async () => { const params = await lookupAddress(address); return quoteMax(token, sats => invoiceFor(params, sats)); }, label);
+
+  function checkMpesa() {
+    const address = tandoAddress(phone);
+    if (!address) return fail('Enter a Kenyan M-Pesa number, like 0712 345 678.');
+    return toAddress(address, `M-Pesa ${address.split('@')[0]}`);
+  }
+
+  function checkLightning() {
     const t = parsePayTarget(input);
-    if (!t) { setError('Enter a Lightning address (name@wallet.com) or an invoice (lnbc…).'); setPhase('error'); return; }
-    if (t.kind === 'address') {
-      return priced(async () => { const params = await lookupAddress(t.address); return quoteMax(token, sats => invoiceFor(params, sats)); }, t.address);
-    }
+    if (!t) return fail('Enter a Lightning address (name@wallet.com) or an invoice (lnbc…).');
+    if (t.kind === 'address') return toAddress(t.address, t.address);
     return priced(async () => {
       const q = await quoteInvoice(token, t.invoice);
       if (payTotal(q) > q.available) {
@@ -56,13 +78,18 @@ export function LightningClaim({ token, mint, onPaid }: { token: string; mint: s
   async function pay() {
     if (!quote) return;
     setPhase('paying'); setError('');
+    if (demo) {
+      await new Promise(r => setTimeout(r, 900)); // let "Sending…" show, like a real payment
+      setResult({ state: MeltQuoteState.PAID, sent: quote.amount, change: null, changeAmount: 0 });
+      setPhase('done'); onPaid(); return;
+    }
     try {
       const r = await payQuote(token, quote);
       setResult(r);
       if (r.state === MeltQuoteState.PAID) { setPhase('done'); onPaid(); }
       else if (r.state === MeltQuoteState.PENDING) setPhase('pending');
-      else { setError('The payment didn’t go through. Your sats are still in the gift, so you can try again.'); setPhase('error'); }
-    } catch (e) { setError(explain(e)); setPhase('error'); }
+      else fail('The payment didn’t go through. Your sats are still in the gift, so you can try again.');
+    } catch (e) { fail(explain(e)); }
   }
 
   // A payment the mint is still routing: check back until it settles.
@@ -74,7 +101,7 @@ export function LightningClaim({ token, mint, onPaid }: { token: string; mint: s
         const state = await paymentState(mint, quote.quote.quote);
         if (!active) return;
         if (state === MeltQuoteState.PAID) { setPhase('done'); onPaid(); return; }
-        if (state === MeltQuoteState.UNPAID) { setError('The payment didn’t go through. Your sats are back in the gift.'); setPhase('error'); return; }
+        if (state === MeltQuoteState.UNPAID) { fail('The payment didn’t go through. Your sats are back in the gift.'); return; }
       } catch { /* keep checking */ }
       if (active) timer = window.setTimeout(tick, 3000);
     };
@@ -89,8 +116,10 @@ export function LightningClaim({ token, mint, onPaid }: { token: string; mint: s
 
   if (phase === 'done' && result) return (
     <div className="paid-panel" role="status">
-      <p className="paid-title">⚡ {result.sent.toLocaleString()} sats sent to {target}!</p>
-      {test && <p className="hint">Test mode: Testnut only pretends to pay, so nothing arrives in a real wallet.</p>}
+      <p className="paid-title">{target.startsWith('M-Pesa') ? '📱' : '⚡'} {result.sent.toLocaleString()} sats sent to {target}!</p>
+      {target.startsWith('M-Pesa') && <p className="hint">Tando turns the sats into shillings and sends them to that M-Pesa number.</p>}
+      {demo && <p className="hint"><b>Demo gift:</b> nothing was actually sent. With a real gift, the money would be on its way now.</p>}
+      {test && <p className="hint">Test mode: Testnut only pretends to pay, so nothing arrives for real.</p>}
       {result.change && <>
         <p className="hint">The mint returned <b>{result.changeAmount.toLocaleString()} sats</b> of unused fee reserve. They’re yours: keep them in a Cashu wallet.</p>
         <div className="share-actions">
@@ -106,7 +135,8 @@ export function LightningClaim({ token, mint, onPaid }: { token: string; mint: s
 
   return (
     <div className="lightning-claim">
-      {test && <p className="warning-line">Test mode: Testnut only pretends to pay. Try any address or invoice; no real sats will arrive.</p>}
+      {demo && <p className="warning-line">Demo gift: try the steps. Nothing is sent and no number is contacted.</p>}
+      {test && <p className="warning-line">Test mode: Testnut only pretends to pay. Nothing will arrive for real.</p>}
       {(phase === 'ready' || phase === 'paying') && quote ? (
         <div className="pay-summary">
           <p>Send <b>{quote.amount.toLocaleString()} sats</b> to <b>{target}</b></p>
@@ -118,16 +148,28 @@ export function LightningClaim({ token, mint, onPaid }: { token: string; mint: s
         </div>
       ) : (
         <>
-          <label htmlFor="ln-target">Lightning address or invoice</label>
-          <input id="ln-target" value={input} placeholder="you@wallet.com or lnbc…" autoComplete="off" spellCheck={false}
-            onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') check(); }}/>
-          <p className="hint">Want shillings in M-Pesa? Every Kenyan number has a Lightning address through Tando: <b>07XXXXXXXX@bitcoin.co.ke</b></p>
+          <div className="mode-chips" role="radiogroup" aria-label="Where should the money go?">
+            <button role="radio" aria-checked={mode === 'mpesa'} className={mode === 'mpesa' ? 'selected' : ''} onClick={() => { setMode('mpesa'); setPhase('idle'); }}>📱 M-Pesa</button>
+            <button role="radio" aria-checked={mode === 'lightning'} className={mode === 'lightning' ? 'selected' : ''} onClick={() => { setMode('lightning'); setPhase('idle'); }}>⚡ Lightning wallet</button>
+          </div>
+
+          {mode === 'mpesa' ? <>
+            <label htmlFor="mpesa-phone">M-Pesa number</label>
+            <input id="mpesa-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} placeholder="0712 345 678"
+              onChange={e => setPhone(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') checkMpesa(); }}/>
+            <p className="hint">Arrives as Kenyan shillings, through <b>Tando</b>’s bitcoin-to-M-Pesa service. Tando takes KES 15–10,000 per payment, and the number may first need to be linked on Tando’s site.</p>
+          </> : <>
+            <label htmlFor="ln-target">Lightning address or invoice</label>
+            <input id="ln-target" value={input} placeholder="you@wallet.com or lnbc…" autoComplete="off" spellCheck={false}
+              onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') checkLightning(); }}/>
+          </>}
+
           {phase === 'error' && <p className="error" role="alert">{error}</p>}
           <div className="share-actions">
-            <button className="primary" disabled={!input.trim() || phase === 'quoting' || phase === 'paying'} onClick={check}>
-              {phase === 'quoting' ? 'Checking fees…' : phase === 'paying' ? 'Sending…' : 'Check fees →'}
+            <button className="primary" disabled={busy || !(mode === 'mpesa' ? phone : input).trim()} onClick={mode === 'mpesa' ? checkMpesa : checkLightning}>
+              {phase === 'quoting' ? 'Checking fees…' : 'Check fees →'}
             </button>
-            {test && <button className="text-button" disabled={phase === 'quoting'} onClick={tryTestInvoice}>No wallet handy? Use a test invoice</button>}
+            {mode === 'lightning' && (test || demo) && <button className="text-button" disabled={busy} onClick={tryTestInvoice}>No wallet handy? Use a test invoice</button>}
           </div>
         </>
       )}

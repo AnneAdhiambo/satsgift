@@ -5,7 +5,7 @@ import { readGiftToken } from '../token';
 type Preview = { token: string; amount: number; mint: string };
 
 /** Paste a Cashu token, preview it, then swap it at the mint into fresh proofs for the gift. */
-export function PasteFund({ onFunded, onDemo }: { onFunded: (token: string) => void; onDemo: () => void }) {
+export function PasteFund({ onFunded }: { onFunded: (token: string) => void }) {
   const [raw, setRaw] = useState('');
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
@@ -44,7 +44,6 @@ export function PasteFund({ onFunded, onDemo }: { onFunded: (token: string) => v
   return <>
     <label htmlFor="token">Cashu token</label>
     <textarea id="token" className="token-input" value={raw} placeholder="cashuB…" onChange={e => read(e.target.value)} spellCheck={false} autoComplete="off"/>
-    <button className="text-button" onClick={onDemo}>Try a demo token</button>
     {error && <p className="error" role="alert">{error}</p>}
     {preview && (
       <div className="paste-preview">

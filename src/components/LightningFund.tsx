@@ -108,7 +108,7 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
       <div className="message-chips amount-chips">
         {PRESETS.map(p => <button key={p} type="button" aria-pressed={sats === p} className={sats === p ? 'selected' : ''} onClick={() => setAmount(String(p))}>{p.toLocaleString()}</button>)}
       </div>
-      <p id="ln-amount-help" className="hint">{amountOk ? 'Pay from any Lightning wallet.' : `Choose between ${MIN_SATS} and ${MAX_SATS.toLocaleString()} sats.`}</p>
+      <p id="ln-amount-help" className="hint">{amountOk ? (mint.test ? 'Free test sats: Testnut pays this invoice for you within a few seconds.' : 'Pay from any Lightning wallet.') : `Choose between ${MIN_SATS} and ${MAX_SATS.toLocaleString()} sats.`}</p>
       {phase === 'error' && <p className="error" role="alert">{error}</p>}
       <button className="primary" disabled={!amountOk || phase === 'creating'} onClick={start}>
         {phase === 'creating' ? 'Creating invoice…' : 'Create Lightning invoice ⚡'}

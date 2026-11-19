@@ -15,6 +15,7 @@ export function FundStep({ demo, valid, amount, mint, notice, saving, onDemo, on
     <div className="token-editor editor">
       <h2>Add your sats</h2>
       <p className="muted">Pay a Lightning invoice, or paste a Cashu token you already have. Everything happens in this browser.</p>
+      <p className="demo-bar">✨ Just exploring? <button className="text-button" onClick={onDemo}>Try a demo gift</button> No sats needed: walk through the card, the scratch-off and the M-Pesa claim.</p>
 
       <div className="fund-tabs" role="tablist" aria-label="How to add sats">
         <button role="tab" id="tab-lightning" aria-controls="panel-lightning" aria-selected={tab === 'lightning'} onClick={() => setTab('lightning')}>⚡ Pay with Lightning</button>
@@ -26,7 +27,7 @@ export function FundStep({ demo, valid, amount, mint, notice, saving, onDemo, on
         <LightningFund funded={real} onFunded={onFunded}/>
       </div>
       <div role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden={tab !== 'paste'}>
-        <PasteFund onFunded={onFunded} onDemo={onDemo}/>
+        <PasteFund onFunded={onFunded}/>
       </div>
 
       {valid && (

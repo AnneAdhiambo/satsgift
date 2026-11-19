@@ -51,7 +51,7 @@ export function Recipient({ encoded }: { encoded: string }) {
   const { gift, amount } = state.data;
   const style = themeStyle(gift.theme);
   const from = gift.from.trim() || 'Someone';
-  const code: CardCode = gift.demo ? { kind: 'demo' } : claimed || paid ? { kind: 'claimed' } : qr ? { kind: 'qr', src: qr, alt: 'Cashu token QR code. Scan with a Cashu wallet to receive your sats.' } : { kind: 'pending', text: 'Preparing your claim code…' };
+  const code: CardCode = claimed || paid ? { kind: 'claimed' } : gift.demo ? { kind: 'demo' } : qr ? { kind: 'qr', src: qr, alt: 'Cashu token QR code. Scan with a Cashu wallet to receive your sats.' } : { kind: 'pending', text: 'Preparing your claim code…' };
   const card = <GiftCard format={gift.format} to={gift.to} from={gift.from} message={gift.message} amount={amount} code={code}
     claimLine={gift.demo ? 'A little preview of a lovely gift.' : 'Scan with a Cashu wallet → Receive ecash'} style={style}/>;
 
@@ -71,30 +71,30 @@ export function Recipient({ encoded }: { encoded: string }) {
 
         {revealed && !claimed && (
           <section className="claim-panel" aria-labelledby="claim-title">
-            <h3 id="claim-title">{gift.demo ? 'This is a demo gift' : paid ? 'Claimed! 🎉' : `Claim your ${amount.toLocaleString()} sats`}</h3>
-            {gift.demo
-              ? <p className="hint">Demo gifts have no real sats inside. Make a real one for someone you love.</p>
-              : <>
-                  {!paid && (
-                    <div className="fund-tabs" role="tablist" aria-label="How to claim">
-                      <button role="tab" id="tab-ln" aria-controls="claim-ln" aria-selected={tab === 'lightning'} onClick={() => setTab('lightning')}>⚡ Lightning / M-Pesa</button>
-                      <button role="tab" id="tab-cashu" aria-controls="claim-cashu" aria-selected={tab === 'cashu'} onClick={() => setTab('cashu')}>Cashu wallet</button>
-                    </div>
-                  )}
-                  {/* Both panels stay mounted so a payment in progress is never lost by switching tabs. */}
-                  <div role="tabpanel" id="claim-ln" aria-labelledby="tab-ln" hidden={tab !== 'lightning'}>
-                    <LightningClaim token={gift.token} mint={state.data.mint} onPaid={() => setPaid(true)}/>
-                  </div>
-                  <div role="tabpanel" id="claim-cashu" aria-labelledby="tab-cashu" hidden={tab !== 'cashu' || paid}>
+            <h3 id="claim-title">{paid ? 'Claimed! 🎉' : `Claim your ${amount.toLocaleString()} sats`}</h3>
+            {!paid && (
+              <div className="fund-tabs" role="tablist" aria-label="How to claim">
+                <button role="tab" id="tab-ln" aria-controls="claim-ln" aria-selected={tab === 'lightning'} onClick={() => setTab('lightning')}>M-Pesa / Lightning</button>
+                <button role="tab" id="tab-cashu" aria-controls="claim-cashu" aria-selected={tab === 'cashu'} onClick={() => setTab('cashu')}>Cashu wallet</button>
+              </div>
+            )}
+            {/* Both panels stay mounted so a payment in progress is never lost by switching tabs. */}
+            <div role="tabpanel" id="claim-ln" aria-labelledby="tab-ln" hidden={tab !== 'lightning'}>
+              <LightningClaim token={gift.token} mint={state.data.mint} amount={amount} demo={gift.demo} onPaid={() => setPaid(true)}/>
+            </div>
+            <div role="tabpanel" id="claim-cashu" aria-labelledby="tab-cashu" hidden={tab !== 'cashu' || paid}>
+              {gift.demo
+                ? <p className="hint">Demo gifts have no real token. With a real gift, you’d tap <b>Open in Cashu wallet</b> or scan the QR on your card with a wallet like <b>Minibits</b> or <b>Cashu.me</b>.</p>
+                : <>
                     <p className="hint">Scan the QR on your card with a Cashu wallet, or tap below. No wallet yet? Try <b>Minibits</b> on your phone or <b>Cashu.me</b> in your browser.</p>
                     <div className="share-actions">
                       <a className="primary" href={`cashu:${gift.token}`}>Open in Cashu wallet</a>
                       <button className="secondary" onClick={copyToken}>Copy token</button>
                     </div>
                     <p role="status" className="notice">{notice}</p>
-                  </div>
-                  {!paid && <p className="warning-line">Claim soon: until you do, anyone with this link could claim it first.</p>}
-                </>}
+                  </>}
+            </div>
+            {!paid && !gift.demo && <p className="warning-line">Claim soon: until you do, anyone with this link could claim it first.</p>}
           </section>
         )}
         <p className="result-note"><a className="text-button" href={location.pathname}>Send a gift of your own →</a></p>

@@ -21,6 +21,7 @@ The production build is in `dist/`.
 
 ## Included
 
+- **Demo gift:** “Try a demo gift” on step 1 walks through the whole flow, including the M-Pesa claim, with no sats and no network calls
 - **Sender:** add sats (pay a Lightning invoice, or paste a Cashu token) → pick a format → personalise → share
 - **Test mode:** only test mints are accepted (Testnut pays its own invoices). To go live, add real mints to `MINTS` in `src/mint.ts`
 - **Lightning funding** via a Cashu mint (NUT-04); an invoice paid across a refresh is still collected
@@ -29,7 +30,8 @@ The production build is in `dist/`.
 - **Gift links:** the gift (token + card) is compressed into the link’s `#g=…` fragment, which browsers never send to a server
 - **Share:** WhatsApp, the phone’s share sheet, copy link, or a QR of the link. Printed vouchers carry the link QR
 - **Recipient page:** envelope → card or scratch-off → claim. Shows “already claimed” using NUT-07
-- **Claim to Lightning** (NUT-05 melt): paste a Lightning address (LNURL-pay, e.g. a Tando `07…@bitcoin.co.ke` address for M-Pesa) or an invoice; fees are shown first and unused fee reserve comes back as a leftover token
+- **Claim to M-Pesa:** enter a Kenyan number; it becomes a Tando Lightning address (`07…@bitcoin.co.ke`) and arrives as shillings
+- **Claim to Lightning** (NUT-05 melt): paste a Lightning address (LNURL-pay) or an invoice; fees are shown first and unused fee reserve comes back as a leftover token
 - **Claim to a Cashu wallet:** open in wallet, scan the card QR, or copy the token
 - In test mode, **“Use a test invoice”** makes a signed throwaway invoice so payouts can be tried without a wallet
 - The sender never sees a claimable QR: previews show a hidden claim code
