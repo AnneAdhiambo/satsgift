@@ -63,6 +63,8 @@ export async function claimInvoice(invoice: Invoice): Promise<string> {
 export async function moveIntoGift(token: string): Promise<{ token: string; amount: number }> {
   const meta = getTokenMetadata(token);
   if (!findMint(meta.mint)) throw new Error('TEST_MODE');
+  // Checked before swapping, so an oversized token is left untouched with its owner.
+  if (meta.amount.toNumber() > MAX_SATS) throw new Error('TOO_BIG');
   const wallet = await getWallet(meta.mint);
   try {
     const proofs = await wallet.receive(token);

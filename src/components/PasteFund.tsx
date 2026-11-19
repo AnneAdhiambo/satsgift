@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MINTS, findMint, mintErrorMessage, moveIntoGift } from '../mint';
+import { MAX_SATS, MINTS, findMint, mintErrorMessage, moveIntoGift } from '../mint';
 import { readGiftToken } from '../token';
 
 type Preview = { token: string; amount: number; mint: string };
@@ -37,6 +37,7 @@ export function PasteFund({ onFunded }: { onFunded: (token: string) => void }) {
       const m = e instanceof Error ? e.message : '';
       setError(m === 'SPENT' ? 'This token has already been spent, so there are no sats left in it.'
         : m === 'TEST_MODE' ? 'SatsGift is in test mode and only accepts test-mint tokens.'
+        : m === 'TOO_BIG' ? `A gift can hold up to ${MAX_SATS.toLocaleString()} sats. Send a smaller token from your wallet; this one is untouched.`
         : mintErrorMessage(e));
     } finally { setBusy(false); }
   }

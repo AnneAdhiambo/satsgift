@@ -155,12 +155,12 @@ export function LightningClaim({ token, mint, amount, demo, onPaid }: Props) {
 
           {mode === 'mpesa' ? <>
             <label htmlFor="mpesa-phone">M-Pesa number</label>
-            <input id="mpesa-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} placeholder="0712 345 678"
+            <input id="mpesa-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={16} placeholder="0712 345 678"
               onChange={e => setPhone(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') checkMpesa(); }}/>
             <p className="hint">Arrives as Kenyan shillings, through <b>Tando</b>’s bitcoin-to-M-Pesa service. Tando takes KES 15–10,000 per payment, and the number may first need to be linked on Tando’s site.</p>
           </> : <>
             <label htmlFor="ln-target">Lightning address or invoice</label>
-            <input id="ln-target" value={input} placeholder="you@wallet.com or lnbc…" autoComplete="off" spellCheck={false}
+            <input id="ln-target" value={input} maxLength={2000} placeholder="you@wallet.com or lnbc…" autoComplete="off" spellCheck={false}
               onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') checkLightning(); }}/>
           </>}
 

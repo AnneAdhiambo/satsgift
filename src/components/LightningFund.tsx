@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { DEFAULT_MINT, MAX_SATS, MIN_SATS, MintQuoteState, claimInvoice, createInvoice, invoiceState, mintErrorMessage, type Invoice } from '../mint';
 import { storage } from '../storage';
+import { cleanAmount as clean } from '../amount';
 import { MintSteps } from './MintSteps';
+
+const cleanAmount = (raw: string) => clean(raw, MAX_SATS);
 
 type Phase = 'idle' | 'creating' | 'waiting' | 'minting' | 'claim-failed' | 'error' | 'done';
 const pause = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -115,11 +118,11 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
       <div className="mint-chip"><span aria-hidden="true">🏦</span> Mint: <b>{mint.name}</b>{mint.test && <em>test mint · not real bitcoin</em>}</div>
       {funded && <p className="hint">Your sats are ready below. A new invoice will replace them, so copy the backup token first.</p>}
       <label htmlFor="ln-amount">Amount (sats)</label>
-      <input id="ln-amount" inputMode="numeric" value={amount} onChange={e => setAmount(e.target.value.replace(/[^\d]/g, ''))} aria-describedby="ln-amount-help"/>
+      <input id="ln-amount" inputMode="numeric" value={amount} maxLength={String(MAX_SATS).length} onChange={e => setAmount(cleanAmount(e.target.value))} aria-describedby="ln-amount-help"/>
       <div className="message-chips amount-chips">
         {PRESETS.map(p => <button key={p} type="button" aria-pressed={sats === p} className={sats === p ? 'selected' : ''} onClick={() => setAmount(String(p))}>{p.toLocaleString()}</button>)}
       </div>
-      <p id="ln-amount-help" className="hint">{amountOk ? (mint.test ? 'Free test sats: Testnut pays this invoice for you within a few seconds.' : 'Pay from any Lightning wallet.') : `Choose between ${MIN_SATS} and ${MAX_SATS.toLocaleString()} sats.`}</p>
+      <p id="ln-amount-help" className={amountOk || !amount ? 'hint' : 'hint error'} role={amountOk ? undefined : 'alert'}>{amountOk ? (mint.test ? 'Free test sats: Testnut pays this invoice for you within a few seconds.' : 'Pay from any Lightning wallet.') : `Choose between ${MIN_SATS} and ${MAX_SATS.toLocaleString()} sats.`}</p>
       {phase === 'error' && <p className="error" role="alert">{error}</p>}
       <button className="primary" disabled={!amountOk} onClick={start}>
         Mint ecash 🥜
