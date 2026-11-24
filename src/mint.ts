@@ -5,6 +5,7 @@ export type MintOption = { url: string; name: string; test: boolean };
 
 // TEST MODE: only test mints, so no real bitcoin can be lost while the app is being built.
 // To go live, add real mints here, e.g. { url: 'https://mint.minibits.cash/Bitcoin', name: 'Minibits', test: false }.
+// Each mint's origin must also be added to connect-src in the Content-Security-Policy in vercel.json, or the browser will block it.
 export const MINTS: MintOption[] = [
   { url: 'https://testnut.cashu.space', name: 'Testnut', test: true },
 ];
