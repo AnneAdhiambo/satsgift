@@ -9,7 +9,8 @@ export type Draft = {
   format: Format; theme: Theme; to: string; from: string; message: string;
 };
 export type PendingInvoice = { mint: string; quote: string; request: string; amount: number; expiry: number | null };
-export type SentGift = { token: string; amount: number; mint: string; to: string; from: string; link: string; createdAt: number };
+/** `code` is the secret that opens a locked link (a generated code or the answer to `question`); empty if unlocked. */
+export type SentGift = { token: string; amount: number; mint: string; to: string; from: string; link: string; code?: string; question?: string; createdAt: number };
 
 // ---------- pure validators (unit-tested) ----------
 const str = (v: unknown, max = 5000) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -37,7 +38,7 @@ export function parseGifts(raw: unknown): SentGift[] {
   return raw.flatMap(g => {
     const d = obj(g);
     if (!d || typeof d.token !== 'string' || !d.token || typeof d.amount !== 'number') return [];
-    return [{ token: d.token, amount: d.amount, mint: str(d.mint), to: str(d.to, 50), from: str(d.from, 50), link: str(d.link, 10000), createdAt: typeof d.createdAt === 'number' ? d.createdAt : 0 }];
+    return [{ token: d.token, amount: d.amount, mint: str(d.mint), to: str(d.to, 50), from: str(d.from, 50), link: str(d.link, 10000), code: str(d.code, 200), question: str(d.question, 100), createdAt: typeof d.createdAt === 'number' ? d.createdAt : 0 }];
   });
 }
 

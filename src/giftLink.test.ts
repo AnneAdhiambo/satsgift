@@ -33,3 +33,27 @@ test('falls back to safe theme/format and trims long text', async () => {
 test('builds a fragment URL', () => {
   assert.equal(giftUrl('abc', 'https://satsgift.app/'), 'https://satsgift.app/#g=abc');
 });
+
+test('a locked gift hides the token and message until unlocked', async () => {
+  const { unlockGift } = await import('./giftLink.ts');
+  const { WrongSecret } = await import('./giftLock.ts');
+  const encoded = await encodeGift(gift, { kind: 'code', secret: 'K7QM-4XPA', question: 'ignored' });
+  const locked = await decodeGift(encoded);
+  assert.equal(locked.token, '');
+  assert.equal(locked.message, '');
+  assert.equal(locked.to, 'Amina');
+  assert.equal(locked.sealed?.kind, 'code');
+  assert.equal(locked.sealed?.question, '');
+  await assert.rejects(unlockGift(locked, 'K7QM-4XPB'), WrongSecret);
+  assert.deepEqual(await unlockGift(locked, 'k7qm4xpa'), gift);
+});
+
+test('a locked demo gift carries the question and no token', async () => {
+  const { unlockGift } = await import('./giftLink.ts');
+  const locked = await decodeGift(await encodeGift({ ...gift, demo: true, token: 'ignored' }, { kind: 'answer', secret: 'Simba', question: 'Our dog?' }));
+  assert.equal(locked.sealed?.question, 'Our dog?');
+  const open = await unlockGift(locked, 'simba');
+  assert.equal(open.demo, true);
+  assert.equal(open.token, '');
+  assert.equal(open.message, gift.message);
+});

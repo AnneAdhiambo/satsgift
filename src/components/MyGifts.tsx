@@ -30,6 +30,10 @@ export function MyGifts() {
     try { await navigator.clipboard.writeText(text); setNote(g.link ? 'Gift link copied.' : 'Token copied. Keep it private.'); }
     catch { setNote('Clipboard unavailable.'); }
   }
+  async function copyCode(g: SentGift) {
+    try { await navigator.clipboard.writeText(g.code ?? ''); setNote(g.question ? `Answer copied (“${g.question}”).` : 'Code copied. Send it separately from the link.'); }
+    catch { setNote('Clipboard unavailable.'); }
+  }
   function remove(g: SentGift) {
     if (status[g.token] !== 'claimed' && confirm !== g.token) { setConfirm(g.token); return; }
     storage.removeGift(g.token); setConfirm(''); setGifts(storage.loadGifts());
@@ -53,6 +57,7 @@ export function MyGifts() {
               </div>
               <div className="gift-row-actions">
                 {s !== 'claimed' && <button className="text-button" onClick={() => copy(g)}>{g.link ? 'Copy link' : 'Copy token'}</button>}
+                {s !== 'claimed' && g.link && g.code && <button className="text-button" onClick={() => copyCode(g)}>{g.question ? 'Copy answer' : <>Copy code <code>{g.code}</code></>}</button>}
                 <button className="text-button danger" onClick={() => remove(g)}>Remove</button>
               </div>
               {confirm === g.token && (

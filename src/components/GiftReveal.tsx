@@ -2,11 +2,12 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Scratch } from './Scratch';
 import type { Format } from '../themes';
 
-type Props = { format: Format; to: string; card: ReactNode; style: CSSProperties; onRevealed?: () => void };
+type Props = { format: Format; to: string; card: ReactNode; style: CSSProperties; onRevealed?: () => void; startOpen?: boolean };
 
-/** Envelope → card (or scratch card). Printed vouchers skip the envelope. Remount with a new `key` to replay. */
-export function GiftReveal({ format, to, card, style, onRevealed }: Props) {
-  const [opened, setOpened] = useState(false);
+/** Envelope → card (or scratch card). Printed vouchers skip the envelope. Remount with a new `key` to replay.
+ *  `startOpen` skips the envelope, e.g. when the recipient has just unlocked it with a code. */
+export function GiftReveal({ format, to, card, style, onRevealed, startOpen = false }: Props) {
+  const [opened, setOpened] = useState(startOpen);
   const showCard = opened || format === 'print';
   useEffect(() => { if (showCard && format !== 'scratch') onRevealed?.(); }, [showCard, format]);
 

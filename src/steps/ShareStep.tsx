@@ -2,7 +2,8 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import QRCode from 'qrcode';
 import { GiftCard } from '../components/GiftCard';
 import { GiftReveal } from '../components/GiftReveal';
-import { encodeGift, giftUrl, type Gift } from '../giftLink';
+import { encodeGift, giftUrl, QUESTION_MAX, type Gift, type Lock } from '../giftLink';
+import { generateCode, secretReady, type LockKind } from '../giftLock';
 import { storage } from '../storage';
 
 type Props = {
@@ -21,26 +22,45 @@ export function ShareStep({ gift, amount, mint, style, notice, onEdit, onCopyBac
   const name = gift.to.trim() || 'them';
   const canShare = typeof navigator.share === 'function';
 
+  // The lock. Reuse what was saved for this token, so coming back here never changes a code already sent.
+  const [saved] = useState(() => gift.demo ? undefined : storage.loadGifts().find(g => g.token === gift.token && g.link));
+  const [lockOn, setLockOn] = useState(saved ? !!saved.code : !print);
+  const [kind, setKind] = useState<LockKind>(saved?.question ? 'answer' : 'code');
+  const [code] = useState(() => saved?.code && !saved.question ? saved.code : generateCode());
+  const [question, setQuestion] = useState(saved?.question ?? '');
+  const [answer, setAnswer] = useState(saved?.question ? saved.code ?? '' : '');
+  const lock: Lock | null = !lockOn ? null : kind === 'code' ? { kind, secret: code, question: '' } : { kind, secret: answer, question: question.trim() };
+  const lockReady = !lock || lock.kind === 'code' || (!!lock.question && secretReady('answer', lock.secret));
+
   useEffect(() => {
     let active = true; setUrl(''); setQr(''); setLinkError('');
-    encodeGift(gift)
+    if (!lockReady) return () => { active = false; };
+    // Locking takes about half a second, so wait for the sender to stop typing their answer.
+    const timer = setTimeout(() => encodeGift(gift, lock)
       .then(encoded => {
         if (!active) return;
         const link = giftUrl(encoded); setUrl(link);
-        // Remember the gift (and its link) so the sender can find it again under "Your gifts".
-        if (!gift.demo) storage.saveGift({ token: gift.token, amount, mint, to: gift.to.trim() || 'someone', from: gift.from, link, createdAt: Date.now() });
+        // Remember the gift (its link and code) so the sender can find it again under "Your gifts".
+        if (!gift.demo) storage.saveGift({ token: gift.token, amount, mint, to: gift.to.trim() || 'someone', from: gift.from, link, code: lock?.secret ?? '', question: lock?.question ?? '', createdAt: Date.now() });
         return QRCode.toDataURL(link, { width: 640, margin: 4, errorCorrectionLevel: 'L' })
           .then(src => { if (active) setQr(src); })
           .catch(() => { if (active) setLinkError('This gift is too big for one QR code. Share the link instead.'); });
       })
-      .catch(() => { if (active) setLinkError('Couldn’t build the gift link in this browser.'); });
-    return () => { active = false; };
-  }, [gift]);
+      .catch(() => { if (active) setLinkError('Couldn’t build the gift link in this browser.'); }), lock?.kind === 'answer' ? 600 : 0);
+    return () => { active = false; clearTimeout(timer); };
+  }, [gift, lockOn, kind, code, question, answer]);
 
-  const message = `🎁 ${gift.from.trim() || 'Someone'} sent you ${amount.toLocaleString()} sats on SatsGift! Open your gift: ${url}`;
+  const sender = gift.from.trim() || 'Someone';
+  const lockNote = !lock ? '' : lock.kind === 'code' ? ' I’ll send you the code to open it separately.' : ' You’ll need to answer a question only you know.';
+  const message = `🎁 ${sender} sent you ${amount.toLocaleString()} sats on SatsGift!${lockNote} Open your gift: ${url}`;
+  const smsHref = `sms:?&body=${encodeURIComponent(`Your SatsGift code from ${sender}: ${code}`)}`;
   async function copyLink() {
-    try { await navigator.clipboard.writeText(url); setShareNote('Link copied. Send it privately: whoever opens it first can claim the sats.'); }
+    try { await navigator.clipboard.writeText(url); setShareNote(lock?.kind === 'code' ? 'Link copied. Send the code a different way, e.g. by SMS.' : 'Link copied. Send it privately: whoever opens it first can claim the sats.'); }
     catch { setShareNote('Clipboard unavailable. Press and hold the link to copy it.'); }
+  }
+  async function copyCode() {
+    try { await navigator.clipboard.writeText(code); setShareNote('Code copied. Send it separately from the link.'); }
+    catch { setShareNote('Clipboard unavailable. Write the code down instead.'); }
   }
   async function nativeShare() {
     try { await navigator.share({ title: 'A gift for you', text: message.replace(url, '').trim(), url }); }
@@ -49,11 +69,12 @@ export function ShareStep({ gift, amount, mint, style, notice, onEdit, onCopyBac
 
   const linkCode = qr
     ? { kind: 'qr' as const, src: qr, alt: `Gift link QR code for ${name}. Scan with a phone camera to open the gift.` }
-    : { kind: 'pending' as const, text: linkError || 'Preparing QR code…' };
+    : { kind: 'pending' as const, text: linkError || (lockReady ? 'Preparing QR code…' : 'Add a question and answer above.') };
   const previewCard = <GiftCard format={gift.format} to={gift.to} from={gift.from} message={gift.message} amount={amount}
     code={gift.demo ? { kind: 'demo' } : { kind: 'hidden' }} claimLine="Your recipient’s claim code appears here." style={style}/>;
   const voucher = <GiftCard format="print" to={gift.to} from={gift.from} message={gift.message} amount={amount}
-    code={linkCode} claimLine="Scan with your phone camera to open your gift" style={style}/>;
+    code={linkCode} claimLine={lock ? 'Scan with your phone camera, then enter your code' : 'Scan with your phone camera to open your gift'} style={style}/>;
+  const linkPlaceholder = !lockReady ? 'Add a question and answer above to build the link.' : lock ? 'Locking your gift…' : 'Building your link…';
 
   return (
     <div className="full-editor gift-result">
@@ -63,11 +84,43 @@ export function ShareStep({ gift, amount, mint, style, notice, onEdit, onCopyBac
         ? 'Print the voucher and hand it over. The QR opens their gift page.'
         : `Share this link with ${name} privately. They open the envelope and claim the sats.`}</p>
 
+      <section className="share-panel lock-panel" aria-label="Secret code lock">
+        <label className="lock-toggle">
+          <input type="checkbox" checked={lockOn} onChange={e => setLockOn(e.currentTarget.checked)}/>
+          <span><b>🔒 Lock with a secret code</b><small>Only someone with the code can open the gift, even if the link gets forwarded.</small></span>
+        </label>
+        {lockOn && <>
+          <div className="fund-tabs" role="radiogroup" aria-label="Kind of lock">
+            <button role="radio" aria-checked={kind === 'code'} onClick={() => setKind('code')}>Generated code</button>
+            <button role="radio" aria-checked={kind === 'answer'} onClick={() => setKind('answer')}>My own question</button>
+          </div>
+          {kind === 'code'
+            ? <>
+                <p className="code-display"><code aria-label={`Secret code: ${code.split('').join(' ')}`}>{code}</code></p>
+                <div className="share-actions">
+                  <a className="secondary" href={smsHref}>Send code by SMS</a>
+                  <button className="secondary" onClick={copyCode}>Copy code</button>
+                </div>
+                <p className="hint">{print
+                  ? `Write the code inside the card, or tell ${name} in person. Don’t print it next to the QR.`
+                  : `Send the code a different way from the link: an SMS, a call, or tell ${name} in person.`}</p>
+              </>
+            : <>
+                <label htmlFor="lock-question">Question for {name}</label>
+                <input id="lock-question" maxLength={QUESTION_MAX} placeholder="What’s the name of our first dog?" value={question} onChange={e => setQuestion(e.currentTarget.value)}/>
+                <label htmlFor="lock-answer">Answer</label>
+                <input id="lock-answer" maxLength={60} autoComplete="off" placeholder="Case and spaces don’t matter" value={answer} onChange={e => setAnswer(e.currentTarget.value)}/>
+                <p className="warning-line">People who know {name} might guess the answer, and someone with the link can keep trying. A generated code is much safer.</p>
+              </>}
+        </>}
+        {print && <p role="status" className="notice">{shareNote}</p>}
+      </section>
+
       {print
         ? <div className="gift-stage">{voucher}</div>
         : <div className="share-panel">
             <label htmlFor="gift-link">Gift link</label>
-            <input id="gift-link" className="link-field" readOnly value={url || 'Building your link…'} onFocus={e => e.currentTarget.select()}/>
+            <input id="gift-link" className="link-field" readOnly value={url || linkPlaceholder} onFocus={e => e.currentTarget.select()}/>
             <div className="share-actions">
               {canShare && <button className="primary" disabled={!url} onClick={nativeShare}>Share…</button>}
               <a className={canShare ? 'secondary' : 'primary'} aria-disabled={!url} href={url ? `https://wa.me/?text=${encodeURIComponent(message)}` : undefined} target="_blank" rel="noopener noreferrer">WhatsApp</a>
@@ -77,7 +130,10 @@ export function ShareStep({ gift, amount, mint, style, notice, onEdit, onCopyBac
             {linkError && <p className="error" role="alert">{linkError}</p>}
             <p role="status" className="notice">{shareNote}</p>
             {showQr && qr && <figure className="link-qr"><img src={qr} alt={`QR code of the gift link for ${name}`}/><figcaption>Let {name} scan this with their phone camera.</figcaption></figure>}
-            <p className="warning-line">🔑 The link <b>is</b> the gift. Anyone who opens it first can claim the sats, so don’t post it publicly.</p>
+            <p className="warning-line">{lock?.kind === 'code'
+              ? <>🔑 The link <b>and</b> the code together are the gift. Send them separately, e.g. the link on WhatsApp and the code by SMS.</>
+              : lock ? <>🔑 Only someone who knows the answer can open this link. Still, don’t post it publicly.</>
+              : <>🔑 The link <b>is</b> the gift. Anyone who opens it first can claim the sats, so don’t post it publicly.</>}</p>
           </div>}
 
       {!print && (

@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import QRCode from 'qrcode';
 import { GiftCard, type CardCode } from '../components/GiftCard';
 import { GiftReveal } from '../components/GiftReveal';
 import { LightningClaim } from '../components/LightningClaim';
-import { decodeGift, type Gift } from '../giftLink';
+import { decodeGift, unlockGift, type Gift } from '../giftLink';
+import { WrongSecret } from '../giftLock';
 import { tokenClaimed } from '../mint';
 import { themeStyle } from '../themes';
 import { readGiftToken } from '../token';
 
-type Loaded = { gift: Gift; amount: number; mint: string };
-type State = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: Loaded };
+type Loaded = { gift: Gift; amount: number; mint: string; unlocked: boolean };
+type State = { status: 'loading' } | { status: 'error'; message: string } | { status: 'locked'; gift: Gift } | { status: 'ready'; data: Loaded };
+
+const damaged = (e: unknown) => e instanceof Error && !/cashu/i.test(e.message) ? e.message : 'This gift link looks damaged. Ask the sender to share it again.';
 
 export function Recipient({ encoded }: { encoded: string }) {
   const [state, setState] = useState<State>({ status: 'loading' });
@@ -19,24 +22,32 @@ export function Recipient({ encoded }: { encoded: string }) {
   const [notice, setNotice] = useState('');
   const [tab, setTab] = useState<'lightning' | 'cashu'>('lightning');
   const [paid, setPaid] = useState(false);
+  const [secret, setSecret] = useState('');
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState('');
+  const shown = useRef(encoded); // the link on screen, so late results from an older link are ignored
+
+  /** Read the (unlocked) token, then check it with the mint and draw its QR. */
+  function open(gift: Gift, unlocked: boolean, current: () => boolean) {
+    const data: Loaded = gift.demo ? { gift, amount: 1000, mint: 'Demo · no real funds', unlocked } : { gift, ...readGiftToken(gift.token), unlocked };
+    setState({ status: 'ready', data });
+    if (gift.demo) return;
+    tokenClaimed(gift.token).then(c => { if (current()) setClaimed(c); });
+    QRCode.toDataURL(gift.token, { width: 480, margin: 4, errorCorrectionLevel: 'L' }).then(src => { if (current()) setQr(src); }).catch(() => {});
+  }
 
   useEffect(() => {
     let active = true;
-    setState({ status: 'loading' }); setClaimed(null); setRevealed(false); setQr(''); setPaid(false);
+    const current = () => active;
+    shown.current = encoded;
+    setState({ status: 'loading' }); setClaimed(null); setRevealed(false); setQr(''); setPaid(false); setSecret(''); setUnlockError('');
     decodeGift(encoded)
       .then(gift => {
-        if (gift.demo) return { gift, amount: 1000, mint: 'Demo · no real funds' };
-        const { amount, mint } = readGiftToken(gift.token);
-        return { gift, amount, mint };
-      })
-      .then(data => {
         if (!active) return;
-        setState({ status: 'ready', data });
-        if (data.gift.demo) return;
-        tokenClaimed(data.gift.token).then(c => { if (active) setClaimed(c); });
-        QRCode.toDataURL(data.gift.token, { width: 480, margin: 4, errorCorrectionLevel: 'L' }).then(src => { if (active) setQr(src); }).catch(() => {});
+        if (gift.sealed) setState({ status: 'locked', gift });
+        else open(gift, false, current);
       })
-      .catch(e => { if (active) setState({ status: 'error', message: e instanceof Error && !/cashu/i.test(e.message) ? e.message : 'This gift link looks damaged. Ask the sender to share it again.' }); });
+      .catch(e => { if (active) setState({ status: 'error', message: damaged(e) }); });
     return () => { active = false; };
   }, [encoded]);
 
@@ -48,7 +59,54 @@ export function Recipient({ encoded }: { encoded: string }) {
     </div></div>
   );
 
-  const { gift, amount } = state.data;
+  if (state.status === 'locked') {
+    const locked = state.gift;
+    const sealed = locked.sealed!;
+    const sender = locked.from.trim() || 'the sender';
+    const isCode = sealed.kind === 'code';
+    const link = encoded;
+    async function unlock(e: FormEvent) {
+      e.preventDefault();
+      if (unlocking) return;
+      setUnlocking(true); setUnlockError('');
+      try {
+        const gift = await unlockGift(locked, secret);
+        if (shown.current === link) open(gift, true, () => shown.current === link);
+      } catch (err) {
+        setUnlockError(err instanceof WrongSecret
+          ? `${err.message} ${isCode ? `Check the code ${sender} sent you` : 'Check the spelling'} and try again.`
+          : damaged(err));
+      } finally { setUnlocking(false); }
+    }
+    return (
+      <div className="builder recipient">
+        <div className="full-editor gift-result">
+          <span className="section-tag">{locked.demo ? 'DEMO GIFT · NO REAL FUNDS' : `A GIFT FOR ${(locked.to.trim() || 'YOU').toUpperCase()}`}</span>
+          <h2>{locked.from.trim() || 'Someone'} sent you a little something</h2>
+          <p className="muted">{isCode ? `It’s locked. Enter the code ${sender} sent you to open it.` : `It’s locked with a question only you can answer.`}</p>
+          <div className="gift-stage">
+            <div className="reveal-envelope locked-envelope" style={themeStyle(locked.theme)} aria-hidden="true">
+              <span className="envelope-flap"/><span className="envelope-seal">🔒</span>
+              <span className="envelope-to">For {locked.to || 'someone special'}</span>
+            </div>
+          </div>
+          <form className="share-panel unlock-form" onSubmit={unlock}>
+            <label htmlFor="unlock-secret">{isCode ? `Code from ${sender}` : sealed.question || 'Your answer'}</label>
+            <input id="unlock-secret" value={secret} onChange={e => { setSecret(e.currentTarget.value); setUnlockError(''); }}
+              placeholder={isCode ? 'e.g. K7QM-4XPA' : 'Your answer'} autoComplete="off" spellCheck={false}
+              autoCapitalize={isCode ? 'characters' : 'off'} className={isCode ? 'code-input' : undefined} aria-invalid={!!unlockError} aria-describedby="unlock-help"/>
+            <div className="share-actions"><button className="primary" disabled={unlocking || !secret.trim()}>{unlocking ? 'Opening…' : 'Open my gift 🔓'}</button></div>
+            {unlockError
+              ? <p id="unlock-help" className="error" role="alert">{unlockError}</p>
+              : <p id="unlock-help" className="hint">{isCode ? 'Capitals, spaces and dashes don’t matter.' : 'Capitals and extra spaces don’t matter.'}</p>}
+          </form>
+          <p className="result-note"><a className="text-button" href={location.pathname}>Send a gift of your own →</a></p>
+        </div>
+      </div>
+    );
+  }
+
+  const { gift, amount, unlocked } = state.data;
   const style = themeStyle(gift.theme);
   const from = gift.from.trim() || 'Someone';
   const code: CardCode = claimed || paid ? { kind: 'claimed' } : gift.demo ? { kind: 'demo' } : qr ? { kind: 'qr', src: qr, alt: 'Cashu token QR code. Scan with a Cashu wallet to receive your sats.' } : { kind: 'pending', text: 'Preparing your claim code…' };
@@ -67,7 +125,7 @@ export function Recipient({ encoded }: { encoded: string }) {
         <h2>{from} sent you a little something</h2>
         <p className="muted">{gift.format === 'print' ? 'Here’s your voucher. Claim the sats below.' : gift.format === 'scratch' ? 'Open the envelope, then scratch the foil.' : 'Open the envelope to see your gift.'}</p>
         {claimed && <p className="claimed-banner" role="status">💌 This gift has already been claimed. If that wasn’t you, let {from} know.</p>}
-        <GiftReveal format={gift.format} to={gift.to} card={card} style={style} onRevealed={() => setRevealed(true)}/>
+        <GiftReveal format={gift.format} to={gift.to} card={card} style={style} onRevealed={() => setRevealed(true)} startOpen={unlocked}/>
 
         {revealed && !claimed && (
           <section className="claim-panel" aria-labelledby="claim-title">
@@ -94,7 +152,7 @@ export function Recipient({ encoded }: { encoded: string }) {
                     <p role="status" className="notice">{notice}</p>
                   </>}
             </div>
-            {!paid && !gift.demo && <p className="warning-line">Claim soon: until you do, anyone with this link could claim it first.</p>}
+            {!paid && !gift.demo && <p className="warning-line">{unlocked ? 'Claim soon: until you do, anyone with this link and the code could claim it first.' : 'Claim soon: until you do, anyone with this link could claim it first.'}</p>}
           </section>
         )}
         <p className="result-note"><a className="text-button" href={location.pathname}>Send a gift of your own →</a></p>
