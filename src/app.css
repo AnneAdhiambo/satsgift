@@ -373,3 +373,8 @@ label small { color: var(--muted); font-weight: 600; }
 .invoice-panel { max-width: 560px; }
 .lightning-form .hint { max-width: 520px; }
 #same-amount { max-width: 160px; }
+
+/* ---------- Centred columns: on wide screens, single-column steps sit in the middle of the panel ---------- */
+.token-editor, .team-pay { padding-inline: max(36px, calc((100% - 680px) / 2)); }
+.team-people { padding-inline: max(36px, calc((100% - 860px) / 2)); }
+@media (max-width: 640px) { .token-editor, .team-pay, .team-people { padding-inline: 20px; } }
