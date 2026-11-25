@@ -16,6 +16,7 @@ function cardApi(): Plugin {
         for await (const chunk of req) chunks.push(chunk as Uint8Array);
         const request = new Request(`http://localhost${req.originalUrl ?? '/api/card'}`, {
           method: req.method, body: req.method === 'GET' || req.method === 'HEAD' ? undefined : new Blob(chunks as BlobPart[]),
+          headers: { 'x-forwarded-for': req.socket.remoteAddress ?? '' }, // like Vercel, for rate limiting
         });
         const response = await handle(request, store);
         res.statusCode = response.status;

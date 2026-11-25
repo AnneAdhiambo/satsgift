@@ -68,3 +68,20 @@ test('cards expire', async () => {
   t += 91 * 86_400_000;
   assert.equal((await call(store, `?id=${body.id}`, undefined, () => t)).status, 404);
 });
+
+test('rate limits card creation per connection, per hour', async () => {
+  const { RATE } = await import('../api/card.ts');
+  let t = 0;
+  const store = memoryStore(() => t);
+  const create = async (ip: string) => {
+    const res = await handle(new Request(BASE, { method: 'POST', headers: { 'x-forwarded-for': ip }, body: JSON.stringify({ h: 'iv.h', pub: PUB, auth: await sha(AUTH) }) }), store, () => t);
+    return res;
+  };
+  for (let i = 0; i < RATE.create; i++) assert.equal((await create('1.2.3.4')).status, 201);
+  const blocked = await create('1.2.3.4');
+  assert.equal(blocked.status, 429);
+  assert.ok(Number(blocked.headers.get('Retry-After')) > 0);
+  assert.equal((await create('5.6.7.8')).status, 201, 'other people are unaffected');
+  t += 3_600_000;
+  assert.equal((await create('1.2.3.4')).status, 201, 'the window resets after an hour');
+});

@@ -464,3 +464,4 @@ label small { color: var(--muted); font-weight: 600; }
 .hint.center { text-align: center; }
 .my-cards { max-width: 640px; margin-left: auto; margin-right: auto; }
 @media (max-width: 640px) { .sign-pickers { grid-template-columns: minmax(0, 1fr); } }
+.card-stats .live-dot { display: inline-flex; align-items: center; gap: 6px; background: var(--lagoon-tint); color: var(--lagoon-deep); font-weight: 700; }

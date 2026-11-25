@@ -21,11 +21,23 @@ const visible = (card: LoadedCard): ShownMessage[] => card.entries.filter(e => e
 const potOf = (card: LoadedCard) => card.entries.filter(e => e.message && !e.hidden && e.sealedToken).reduce((s, e) => s + (e.message!.sats || 0), 0);
 const givers = (card: LoadedCard) => card.entries.filter(e => e.message && !e.hidden && e.sealedToken).length;
 
-function useCard(link: CardLink) {
+const REFRESH_MS = 30_000;
+
+/** Load a card, and keep it fresh every 30s while it's open and the tab is in view. */
+function useCard(link: CardLink, live = true) {
   const [card, setCard] = useState<LoadedCard | null>(null);
   const [error, setError] = useState('');
   const reload = useCallback(() => loadCard(link).then(c => { setCard(c); setError(''); return c; }).catch(e => { setError(e instanceof Error ? e.message : 'Couldn’t load this card.'); return null; }), [link.id]);
   useEffect(() => { void reload(); }, [reload]);
+  const open = card?.status === 'open';
+  useEffect(() => {
+    if (!live || !open) return;
+    // A failed background refresh keeps what's on screen; only the first load shows an error.
+    const quiet = () => { if (document.visibilityState === 'visible') loadCard(link).then(setCard).catch(() => {}); };
+    const timer = window.setInterval(quiet, REFRESH_MS);
+    document.addEventListener('visibilitychange', quiet);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', quiet); };
+  }, [live, open, link.id]);
   return { card, error, reload, setCard };
 }
 
@@ -229,13 +241,13 @@ export function CardOrganiser({ link }: { link: CardLink & { kind: 'org' } }) {
         <div className="share-actions">
           <a className="primary" href={`https://wa.me/?text=${encodeURIComponent(invite)}`} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
           <button className="secondary" onClick={() => copyText(joinUrl, setNote, 'Invite link copied.')}>Copy invite link</button>
-          <button className="secondary" onClick={() => reload()}>Refresh ↻</button>
         </div>
         <p role="status" className="notice">{note}</p>
         <p className="warning-line">🔑 <b>This page’s address is your organiser key.</b> It’s saved in this browser under “Cards you’ve started”. Don’t share it: whoever has it can send the card.</p>
       </div>
 
       <div className="card-stats">
+        <span className="live-dot" title="Updates by itself every 30 seconds"><i className="pulse-dot" aria-hidden="true"/>Live</span>
         <span><b>{all.filter(m => !m.hidden).length}</b> messages</span>
         <span><b>{pot.toLocaleString()}</b> sats from {people} {people === 1 ? 'person' : 'people'}</span>
       </div>
@@ -304,7 +316,7 @@ export function CardJoin({ link }: { link: CardLink & { kind: 'join' } }) {
 
 // ---------- 4. The recipient ----------
 export function CardOpen({ link }: { link: CardLink & { kind: 'card' } }) {
-  const { card, error } = useCard(link);
+  const { card, error } = useCard(link, false);
   const [payload, setPayload] = useState('');
   const [openError, setOpenError] = useState('');
   useEffect(() => { if (card) openGift(link, card).then(setPayload).catch(e => setOpenError(e instanceof Error ? e.message : 'Couldn’t open this card.')); }, [card]);

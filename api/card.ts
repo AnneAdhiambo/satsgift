@@ -16,6 +16,9 @@
 //   POST /api/card?id=…&action=send        send     { auth, gift }              → { ok }
 
 export const LIMITS = { entries: 50, header: 4_000, message: 2_000, token: 20_000, gift: 60_000, body: 100_000 };
+/** Per connection (one internet address, so a whole home or office on shared Wi-Fi), per hour. */
+export const RATE = { create: 20, sign: 150, read: 3_000 };
+const HOUR = 3_600;
 const DAY = 86_400;
 export const TTL = { open: 90 * DAY, sent: 60 * DAY };
 
@@ -30,6 +33,8 @@ export interface Store {
   /** Append to a list; returns the new length. */
   push(key: string, value: string, ttl: number): Promise<number>;
   list(key: string): Promise<string[]>;
+  /** Add one to a counter that expires `ttl` seconds after its first use; returns the new count. */
+  incr(key: string, ttl: number): Promise<number>;
 }
 
 /** For local development and tests. Forgets everything on restart. */
@@ -44,6 +49,10 @@ export function memoryStore(now = () => Date.now()): Store {
       list.push(value); data.set(key, { value: list, until: now() + ttl * 1000 }); return list.length;
     },
     async list(key) { const e = live(key); return Array.isArray(e?.value) ? [...e.value] : []; },
+    async incr(key, ttl) {
+      const e = live(key); const n = (typeof e?.value === 'string' ? Number(e.value) : 0) + 1;
+      data.set(key, { value: String(n), until: e ? e.until : now() + ttl * 1000 }); return n;
+    },
   };
 }
 
@@ -61,6 +70,7 @@ export function redisStore(url: string, token: string): Store {
     async set(key, value, ttl) { await run(['SET', key, value, 'EX', ttl]); },
     async push(key, value, ttl) { const [n] = await run(['RPUSH', key, value], ['EXPIRE', key, ttl]); return Number(n); },
     async list(key) { const [v] = await run(['LRANGE', key, 0, -1]); return Array.isArray(v) ? v.map(String) : []; },
+    async incr(key, ttl) { const [n] = await run(['INCR', key], ['EXPIRE', key, ttl, 'NX']); return Number(n); },
   };
 }
 
@@ -85,6 +95,22 @@ function newId() {
   const abc = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   return Array.from(crypto.getRandomValues(new Uint8Array(12)), b => abc[b % abc.length]).join('');
 }
+/** Who's calling, as a hash: raw IP addresses are never stored. */
+async function caller(request: Request) {
+  const ip = (request.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown';
+  return (await sha256Hex(`satsgift-rate:${ip}`)).slice(0, 24);
+}
+/** Fixed one-hour window per caller and action. Returns a 429 response when over the limit. */
+async function limited(store: Store, request: Request, action: keyof typeof RATE, now: number): Promise<Response | null> {
+  const window = Math.floor(now / 1000 / HOUR);
+  const count = await store.incr(`rate:${action}:${await caller(request)}:${window}`, HOUR);
+  if (count <= RATE[action]) return null;
+  const retry = HOUR - Math.floor(now / 1000) % HOUR;
+  const res = fail(429, action === 'create' ? 'You’ve started a lot of cards in the last hour. Please try again a bit later.' : 'Too many requests from your connection. Please wait a little and try again.');
+  res.headers.set('Retry-After', String(retry));
+  return res;
+}
+
 const metaKey = (id: string) => `card:${id}`;
 const entriesKey = (id: string) => `card:${id}:entries`;
 
@@ -104,6 +130,7 @@ export async function handle(request: Request, store: Store, now = () => Date.no
   try {
     if (request.method === 'GET') {
       if (!id) return fail(400, 'missing id');
+      const slow = await limited(store, request, 'read', now()); if (slow) return slow;
       const raw = await store.get(metaKey(id));
       if (!raw) return fail(404, 'This card doesn’t exist, or it has expired.');
       const meta = JSON.parse(raw) as Meta;
@@ -117,6 +144,7 @@ export async function handle(request: Request, store: Store, now = () => Date.no
 
     if (!id) { // create
       if (!isB64(body.h, LIMITS.header) || !isHex(body.pub, 66) || !isHex(body.auth, 64)) return fail(400, 'bad card');
+      const slow = await limited(store, request, 'create', now()); if (slow) return slow;
       const cardId = newId();
       const meta: Meta = { v: 1, h: body.h, pub: body.pub, auth: body.auth, status: 'open', createdAt: now(), hidden: [] };
       await store.set(metaKey(cardId), JSON.stringify(meta), TTL.open);
@@ -130,6 +158,7 @@ export async function handle(request: Request, store: Store, now = () => Date.no
     if (action === 'sign') {
       if (meta.status !== 'open') return fail(409, 'This card has already been sent.');
       if (!isB64(body.m, LIMITS.message) || (body.t !== undefined && !isB64(body.t, LIMITS.token))) return fail(400, 'bad message');
+      const slow = await limited(store, request, 'sign', now()); if (slow) return slow;
       const existing = await store.list(entriesKey(id));
       if (existing.length >= LIMITS.entries) return fail(409, `This card is full (${LIMITS.entries} messages).`);
       const entry: Entry = { m: body.m, at: now(), ...(typeof body.t === 'string' && { t: body.t }) };
