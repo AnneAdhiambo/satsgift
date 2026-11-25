@@ -15,8 +15,11 @@ export function FundStep({ token, demo, valid, amount, mint, notice, saving, onD
   const real = valid && !demo;
   return (
     <div className="token-editor editor">
-      <h2>Get your Cashu ecash</h2>
-      <p className="muted">Mint fresh ecash from a Cashu mint, or paste a Cashu token you already have. Everything happens in this browser.</p>
+      <header className="fund-head">
+        <span className="fund-tag">🥜 Cashu Ecash</span>
+        <h2>Get your Cashu <span className="scribble">ecash</span></h2>
+        <p className="muted">Mint fresh ecash from a Cashu mint, or paste a Cashu token you already have. Everything happens in this browser.</p>
+      </header>
       <div className="quick-links">
         <button className="quick-link demo" onClick={onDemo}>
           <span className="quick-icon" aria-hidden="true">✨</span><span><b>Try a demo</b><small>No sats needed</small></span><span className="quick-arrow" aria-hidden="true">→</span>
@@ -48,9 +51,8 @@ export function FundStep({ token, demo, valid, amount, mint, notice, saving, onD
         </div>
       )}
       <p role="status" className="notice">{notice}</p>
-      <CashuExplainer/>
-
-      <div className="navigation token-navigation">
+      <div className="fund-footer">
+        <CashuExplainer/>
         <button className="primary" disabled={!valid} onClick={onNext}>Choose a format →</button>
       </div>
       <MyGifts onUse={onFunded}/>
