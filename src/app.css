@@ -115,8 +115,9 @@ input[readonly] { background: var(--sand); color: var(--muted); }
 .fund-tabs button { border: 0; border-radius: 99px; padding: 8px 16px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 700; transition: background-color .2s, color .2s; }
 .fund-tabs button[aria-selected="true"] { background: var(--ink); color: var(--white); }
 .hint { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
-.demo-bar { margin: -6px 0 18px; padding: 10px 14px; border-radius: 14px; background: var(--sun-tint); color: #5a3d00; font-size: 14px; }
-.demo-bar .text-button { padding: 0 4px; font-size: 14px; }
+.quick-links { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px; }
+.quick-link { display: inline-flex; align-items: center; padding: 6px 12px; border: 1.5px solid transparent; border-radius: 99px; background: var(--sun-tint); color: #5a3d00; font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; transition: border-color .2s; }
+.quick-link:hover, .quick-link:focus-visible { border-color: var(--sun-deep); }
 .mode-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .mode-chips button { padding: 8px 14px; border: 1.5px solid var(--line); border-radius: 99px; background: var(--white); color: var(--ink); font-size: 14px; font-weight: 700; }
 .mode-chips button.selected { border-color: var(--ink); background: var(--ink); color: var(--white); }
@@ -325,7 +326,6 @@ a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 
 /* ---------- Team send ---------- */
 .team-switch { margin: 0 0 12px; }
-.team-bar { margin-top: 0; }
 .team-letter-input { min-height: 160px; }
 label small { color: var(--muted); font-weight: 600; }
 .team-summary { width: 100%; max-width: 440px; margin: 18px 0 8px; border-collapse: collapse; font-size: 15px; }
