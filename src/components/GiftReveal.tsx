@@ -10,10 +10,12 @@ type Props = {
   letter?: ReactNode;
   /** A small "From …" line on the envelope. */
   from?: string;
+  /** e.g. "🎄 Christmas", shown on the envelope. */
+  occasion?: string;
 };
 
 /** Envelope → (letter) → card or scratch card. Printed vouchers skip the envelope. Remount with a new `key` to replay. */
-export function GiftReveal({ format, to, card, style, onRevealed, startOpen = false, letter, from }: Props) {
+export function GiftReveal({ format, to, card, style, onRevealed, startOpen = false, letter, from, occasion }: Props) {
   const [opened, setOpened] = useState(startOpen);
   const [letterRead, setLetterRead] = useState(!letter);
   const open = opened || format === 'print';
@@ -25,6 +27,7 @@ export function GiftReveal({ format, to, card, style, onRevealed, startOpen = fa
       {!open
         ? <button className="reveal-envelope" style={style} onClick={() => setOpened(true)} aria-label={`Open the gift envelope for ${to || 'you'}`}>
             <span className="envelope-flap"/><span className="envelope-seal">₿</span>
+            {occasion && <span className="envelope-occasion">{occasion}</span>}
             {from && <span className="envelope-from">From {from}</span>}
             <span className="envelope-to">For {to || 'someone special'}</span><span className="envelope-hint">Tap to open a little joy ↗</span>
           </button>

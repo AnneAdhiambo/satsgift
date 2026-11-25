@@ -95,3 +95,9 @@
 .letter-body .letter-company { margin: 0; text-align: right; font: 600 13px var(--font-body); opacity: .75; }
 @keyframes letter-rise { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .letter { animation: none; } }
+
+/* Occasion on the letter and envelope. */
+.letter-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.letter-body .letter-top .letter-from { margin: 0; }
+.letter-occasion { display: inline-block; padding: 4px 12px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-ink); font: 700 13px var(--font-body); }
+.envelope-occasion { position: absolute; top: 12px; left: 14px; max-width: 45%; padding: 3px 9px; border-radius: 99px; background: var(--paper); color: var(--accent-ink); font: 700 12px var(--font-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

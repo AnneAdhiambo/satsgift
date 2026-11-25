@@ -128,7 +128,7 @@ export function Recipient({ encoded }: { encoded: string }) {
         <p className="muted">{gift.format === 'print' ? 'Here’s your voucher. Claim the sats below.' : gift.format === 'scratch' ? 'Open the envelope, then scratch the foil.' : 'Open the envelope to see your gift.'}</p>
         {claimed && <p className="claimed-banner" role="status">💌 This gift has already been claimed, or {from} took it back. If that wasn’t you, let {from} know.</p>}
         <GiftReveal format={gift.format} to={gift.to} card={card} style={style} onRevealed={() => setRevealed(true)} startOpen={unlocked}
-          from={gift.letter ? gift.from : undefined}
+          from={gift.letter ? gift.from : undefined} occasion={gift.letter?.occasion}
           letter={gift.letter && <Letter from={gift.from} to={gift.to} letter={gift.letter} personal={gift.message} style={style}/>}/>
 
         {revealed && !claimed && (

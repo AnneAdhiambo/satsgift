@@ -60,7 +60,7 @@ test('a locked demo gift carries the question and no token', async () => {
 
 test('a team letter travels with the gift, sealed when locked', async () => {
   const { unlockGift } = await import('./giftLink.ts');
-  const withLetter: Gift = { ...gift, from: 'Safari Tech', letter: { body: 'Dear team, thank you for a wonderful year.', signedBy: 'Wanjiru, CEO' } };
+  const withLetter: Gift = { ...gift, from: 'Safari Tech', letter: { body: 'Dear team, thank you for a wonderful year.', signedBy: 'Wanjiru, CEO', occasion: '🎄 Christmas' } };
   assert.deepEqual(await decodeGift(await encodeGift(withLetter)), withLetter);
   const locked = await decodeGift(await encodeGift(withLetter, { kind: 'code', secret: 'K7QM-4XPA', question: '' }));
   assert.equal(locked.letter, undefined, 'letter hidden until unlocked');

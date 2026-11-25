@@ -12,17 +12,22 @@ import {
   newTeamId, teamCsv, teamProblems, teamTotals, type TeamRecipient,
 } from '../teamSend';
 import { themeStyle } from '../themes';
+import { DEFAULT_OCCASION, OCCASIONS, OCCASION_LABEL_MAX, findOccasion, isTemplateLetter, occasionTag, type Occasion } from '../occasions';
+import type { Letter as LetterData } from '../giftLink';
 import { readGiftToken } from '../token';
 
-const STEPS = ['Letter', 'People', 'Pay', 'Send'];
-const DEFAULT_LETTER = 'Thank you for everything you brought to this year. Here’s a little bitcoin to say how much we appreciate you.';
+const STEPS = ['Occasion', 'People', 'Pay', 'Send'];
+const START = findOccasion(DEFAULT_OCCASION)!;
 const blankRow = (sats = 1000): TeamRecipient => ({ name: '', sats, note: '' });
 
 function freshDraft(): TeamDraft {
-  return { id: newTeamId(), step: 1, company: '', letter: DEFAULT_LETTER, signedBy: '', theme: 'lagoon', format: 'scratch', lock: true, recipients: [blankRow()], paidToken: '' };
+  return { id: newTeamId(), step: 1, company: '', letter: START.letter, signedBy: '', occasion: START.id, occasionLabel: '', theme: START.theme, format: 'scratch', lock: true, recipients: [blankRow()], paidToken: '' };
 }
 
-/** This team send's gifts, in the order the recipients were listed. */
+/** The letter every recipient gets, with its occasion tag. */
+const letterOf = (d: TeamDraft): LetterData => ({ body: d.letter, signedBy: d.signedBy, occasion: occasionTag(d.occasion, d.occasionLabel) });
+
+/** This group send's gifts, in the order the recipients were listed. */
 const teamGifts = (id: string) => storage.loadGifts().filter(g => g.team === id).sort((a, b) => b.createdAt - a.createdAt);
 
 /** One sender → many recipients: write a letter, list the people, pay once, get a gift link per person. */
@@ -74,7 +79,7 @@ export function TeamBuilder() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : '';
       setSplitError(
-        msg === 'NOT_ENOUGH' ? 'The payment was smaller than this team send needs. Your sats are safe under “Your gifts” on the single-gift page.'
+        msg === 'NOT_ENOUGH' ? 'The payment was smaller than this group send needs. Your sats are safe under “Your gifts” on the single-gift page.'
         : msg === 'SPENT' ? 'These sats were already split. Check “Your gifts” on the single-gift page.'
         : `Splitting the sats failed. They’re safe, try again. ${mintErrorMessage(e)}`);
     } finally { setSplitting(false); }
@@ -88,11 +93,11 @@ export function TeamBuilder() {
   return <>
     <section className="hero">
       <h1>One letter, <em>a gift for everyone</em></h1>
-      <p>Send your whole team a letter with sats inside. Each person gets their own envelope, link and code.</p>
+      <p>Family, friends or colleagues: send everyone a letter with sats inside. Each person gets their own envelope, link and code.</p>
     </section>
     <div className="workspace">
       <p className="team-switch"><a className="text-button" href="#">← Back to a single gift</a></p>
-      <nav className="stepper" aria-label="Team send progress">
+      <nav className="stepper" aria-label="Group send progress">
         {STEPS.map((label, i) => (
           <button key={label} disabled={split ? i + 1 !== 4 : i + 1 > d.step} onClick={() => go(i + 1)} className={`step ${d.step === i + 1 ? 'active' : ''} ${d.step > i + 1 ? 'done' : ''}`} aria-current={d.step === i + 1 ? 'step' : undefined}>
             <span>{d.step > i + 1 ? '✓' : i + 1}</span><b>{label}</b>
@@ -100,13 +105,13 @@ export function TeamBuilder() {
         ))}
       </nav>
       <section className={`builder ${split ? 'final-builder' : ''}`}>
-        {!saving && <p className="error" role="alert">This browser can’t save data (private window?). Team sends need it to keep your sats safe, so please use a normal window.</p>}
+        {!saving && <p className="error" role="alert">This browser can’t save data (private window?). Group sends need it to keep your sats safe, so please use a normal window.</p>}
         {d.step === 1 && <LetterStep d={d} set={set} style={style} onNext={() => go(2)}/>}
         {d.step === 2 && <PeopleStep d={d} set={set} problems={problems} onBack={() => go(1)} onNext={() => go(3)}/>}
         {d.step === 3 && (
           <div className="full-editor team-pay">
             <h2>Pay once for everyone</h2>
-            <p className="muted">{company || 'Your team send'} · {d.recipients.length} {d.recipients.length === 1 ? 'person' : 'people'}</p>
+            <p className="muted">{company || 'Your group send'} · {d.recipients.length} {d.recipients.length === 1 ? 'person' : 'people'}</p>
             <table className="team-summary">
               <tbody>
                 <tr><td>{d.recipients.length} gifts</td><td>{totals.gifts.toLocaleString()} sats</td></tr>
@@ -139,18 +144,41 @@ type StepProps = { d: TeamDraft; set: (patch: Partial<TeamDraft>) => void };
 
 function LetterStep({ d, set, style, onNext }: StepProps & { style: CSSProperties; onNext: () => void }) {
   const ready = d.company.trim() && d.letter.trim();
+  /** Switch occasion: swap in its letter and theme, unless the sender already made them their own. */
+  function pick(o: Occasion) {
+    const patch: Partial<TeamDraft> = { occasion: o.id };
+    if (isTemplateLetter(d.letter)) patch.letter = o.letter;
+    if (findOccasion(d.occasion)?.theme === d.theme) patch.theme = o.theme;
+    set(patch);
+  }
   return (
     <div className="personalise-editor">
+      <div className="occasion-head">
+        <h2>What’s the occasion?</h2>
+        <p className="muted">Pick one to start with a ready letter, then make it your own.</p>
+        <div className="occasion-chips" role="radiogroup" aria-label="Occasion">
+          {OCCASIONS.map(o => (
+            <button key={o.id} role="radio" aria-checked={d.occasion === o.id} className="occasion-chip" onClick={() => pick(o)}>
+              <span aria-hidden="true">{o.icon}</span>{o.label}
+            </button>
+          ))}
+        </div>
+        {d.occasion === 'other' && (
+          <div className="occasion-custom">
+            <label htmlFor="occasion-label">What’s it for?</label>
+            <input id="occasion-label" value={d.occasionLabel} maxLength={OCCASION_LABEL_MAX} placeholder="Back to school" onChange={e => set({ occasionLabel: e.target.value })}/>
+          </div>
+        )}
+      </div>
       <div className="builder-grid">
         <div className="editor">
-          <h2>Write your letter</h2>
-          <p className="muted">Everyone gets the same letter, opened with their own name. You can add a personal line per person next.</p>
-          <label htmlFor="team-company">From (company or team)</label>
-          <input id="team-company" value={d.company} maxLength={NAME_MAX} placeholder="Safari Tech Ltd" onChange={e => set({ company: e.target.value })}/>
+          <label htmlFor="team-company">From</label>
+          <input id="team-company" value={d.company} maxLength={NAME_MAX} placeholder="The Kamau family" onChange={e => set({ company: e.target.value })}/>
+          <p className="hint">Your name, your family, your friends’ group or your company.</p>
           <label htmlFor="team-letter">Letter <small>{d.letter.length}/{LETTER_MAX}</small></label>
           <textarea id="team-letter" className="team-letter-input" value={d.letter} maxLength={LETTER_MAX} onChange={e => set({ letter: e.target.value })}/>
           <label htmlFor="team-signed">Signed by</label>
-          <input id="team-signed" value={d.signedBy} maxLength={SIGNED_BY_MAX} placeholder="Wanjiru, CEO" onChange={e => set({ signedBy: e.target.value })}/>
+          <input id="team-signed" value={d.signedBy} maxLength={SIGNED_BY_MAX} placeholder="Mum & Dad" onChange={e => set({ signedBy: e.target.value })}/>
           <ThemePicker theme={d.theme} onChange={theme => set({ theme })}/>
           <label id="team-format-label">Gift style</label>
           <div className="fund-tabs" role="radiogroup" aria-labelledby="team-format-label">
@@ -159,7 +187,7 @@ function LetterStep({ d, set, style, onNext }: StepProps & { style: CSSPropertie
           </div>
         </div>
         <aside className="live-preview" aria-label="Letter preview">
-          <Letter from={d.company || 'Your company'} to={d.recipients[0]?.name || 'Juma'} letter={{ body: d.letter, signedBy: d.signedBy }} personal={d.recipients[0]?.note ?? ''} style={style}/>
+          <Letter from={d.company || 'You'} to={d.recipients[0]?.name || 'Juma'} letter={letterOf(d)} personal={d.recipients[0]?.note ?? ''} style={style}/>
         </aside>
       </div>
       <div className="navigation">
@@ -226,7 +254,7 @@ function SendStep({ d, style, onNew }: { d: TeamDraft; style: CSSProperties; onN
         const g = todo[k];
         setProgress(`${d.lock ? 'Locking' : 'Building'} gift ${k + 1} of ${todo.length}…`);
         const r = d.recipients[list.indexOf(g)];
-        const gift: Gift = { token: g.token, demo: false, to: g.to, from: d.company.trim(), message: r?.note ?? '', theme: d.theme, format: d.format, letter: { body: d.letter, signedBy: d.signedBy } };
+        const gift: Gift = { token: g.token, demo: false, to: g.to, from: d.company.trim(), message: r?.note ?? '', theme: d.theme, format: d.format, letter: letterOf(d) };
         const code = d.lock ? generateCode() : '';
         const encoded = await encodeGift(gift, d.lock ? { kind: 'code', secret: code, question: '' } : null);
         if (!active) return;
@@ -245,7 +273,7 @@ function SendStep({ d, style, onNew }: { d: TeamDraft; style: CSSProperties; onN
   function downloadCsv() {
     const csv = teamCsv(ready.map(g => ({ name: g.to, sats: g.amount, link: g.link, code: g.code ?? '' })));
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    const a = Object.assign(document.createElement('a'), { href: url, download: `satsgift-${(d.company.trim() || 'team').replace(/[^\w-]+/g, '-').toLowerCase()}.csv` });
+    const a = Object.assign(document.createElement('a'), { href: url, download: `satsgift-${(d.company.trim() || 'group').replace(/[^\w-]+/g, '-').toLowerCase()}.csv` });
     a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     setNote('CSV downloaded. It holds every link and code, so keep it private.');
   }
@@ -281,10 +309,10 @@ function SendStep({ d, style, onNew }: { d: TeamDraft; style: CSSProperties; onN
       </div>
       <section className="preview-panel" aria-label="Letter preview">
         <div className="preview-head"><div><h3>What {gifts[0]?.to || 'they'} will read</h3><p className="hint">Each person sees their own name and personal line.</p></div></div>
-        <Letter from={d.company} to={gifts[0]?.to || d.recipients[0]?.name || ''} letter={{ body: d.letter, signedBy: d.signedBy }} personal={d.recipients[0]?.note ?? ''} style={style}/>
+        <Letter from={d.company} to={gifts[0]?.to || d.recipients[0]?.name || ''} letter={letterOf(d)} personal={d.recipients[0]?.note ?? ''} style={style}/>
       </section>
       <div className="result-actions">
-        <button className="secondary" onClick={onNew}>Start a new team send ＋</button>
+        <button className="secondary" onClick={onNew}>Start a new group send ＋</button>
       </div>
     </div>
   );

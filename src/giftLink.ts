@@ -14,21 +14,29 @@ export type Gift = {
   letter?: Letter;    // team sends: a longer letter shown before the card
 };
 /** A letter from the sender (e.g. a company to its team). The gift's `message` holds the personal line. */
-export type Letter = { body: string; signedBy: string };
+export type Letter = { body: string; signedBy: string; occasion?: string };
 /** How the sender locks a gift: a generated code, or an answer to their own question. */
 export type Lock = { kind: LockKind; secret: string; question: string };
 
 export const GIFT_HASH = '#g=';
 type WireLock = { k: LockKind; q?: string; s: string; i: string; c: string };
-type WireLetter = { b: string; s?: string };
+type WireLetter = { b: string; s?: string; o?: string };
 type Wire = { v: 1; t?: string; d?: 1; to: string; fr: string; m?: string; l?: WireLetter; th: string; f: string; x?: WireLock };
 type Secret = { t?: string; m: string; l?: WireLetter };
 
-const toWireLetter = (l?: Letter): WireLetter | undefined => l && l.body.trim() ? (l.signedBy.trim() ? { b: l.body, s: l.signedBy } : { b: l.body }) : undefined;
+function toWireLetter(l?: Letter): WireLetter | undefined {
+  if (!l || !l.body.trim()) return undefined;
+  const w: WireLetter = { b: l.body };
+  if (l.signedBy.trim()) w.s = l.signedBy;
+  if (l.occasion?.trim()) w.o = l.occasion;
+  return w;
+}
 function fromWireLetter(l: unknown): Letter | undefined {
   if (!l || typeof l !== 'object') return undefined;
   const body = text((l as WireLetter).b, LETTER_MAX);
-  return body.trim() ? { body, signedBy: text((l as WireLetter).s, SIGNED_BY_MAX) } : undefined;
+  if (!body.trim()) return undefined;
+  const occasion = text((l as WireLetter).o, 60);
+  return { body, signedBy: text((l as WireLetter).s, SIGNED_BY_MAX), ...(occasion && { occasion }) };
 }
 
 async function pipe(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {

@@ -1,6 +1,7 @@
 // Browser saving, so a refresh never loses sats. Everything stays in this browser's localStorage.
 // Every read is validated: stored data may be old, edited by hand, or missing.
 import { formats, themes, type Format, type Theme } from './themes.ts';
+import { DEFAULT_OCCASION, OCCASION_LABEL_MAX, findOccasion } from './occasions.ts';
 import { LETTER_MAX, NAME_MAX, NOTE_MAX, SIGNED_BY_MAX, TEAM_MAX_RECIPIENTS, TEAM_MAX_SATS_EACH, type TeamRecipient } from './teamSend.ts';
 
 const KEY = { draft: 'satsgift:v1:draft', invoice: 'satsgift:v1:invoice', teamInvoice: 'satsgift:v1:team-invoice', gifts: 'satsgift:v1:gifts', team: 'satsgift:v1:team' } as const;
@@ -18,7 +19,7 @@ export type SentGift = { token: string; amount: number; mint: string; to: string
 
 /** A team send in progress. `paidToken` holds the sats between payment and the split. */
 export type TeamDraft = {
-  id: string; step: number; company: string; letter: string; signedBy: string;
+  id: string; step: number; company: string; letter: string; signedBy: string; occasion: string; occasionLabel: string;
   theme: Theme; format: Format; lock: boolean; recipients: TeamRecipient[]; paidToken: string;
 };
 
@@ -79,6 +80,7 @@ export function parseTeamDraft(raw: unknown): TeamDraft | null {
   return {
     id: d.id.slice(0, 40), step: typeof d.step === 'number' && d.step >= 1 && d.step <= 4 ? Math.floor(d.step) : 1,
     company: str(d.company, NAME_MAX), letter: str(d.letter, LETTER_MAX), signedBy: str(d.signedBy, SIGNED_BY_MAX),
+    occasion: typeof d.occasion === 'string' && findOccasion(d.occasion) ? d.occasion : DEFAULT_OCCASION, occasionLabel: str(d.occasionLabel, OCCASION_LABEL_MAX),
     theme: (typeof d.theme === 'string' && d.theme in themes ? d.theme : 'lagoon') as Theme,
     format: d.format === 'card' ? 'card' : 'scratch', lock: d.lock !== false, recipients, paidToken: str(d.paidToken, 20000),
   };

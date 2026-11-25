@@ -25,7 +25,7 @@ export function FundStep({ token, demo, valid, amount, mint, notice, saving, onD
           <span className="quick-icon" aria-hidden="true">✨</span><span><b>Try a demo</b><small>No sats needed</small></span><span className="quick-arrow" aria-hidden="true">→</span>
         </button>
         <a className="quick-link team" href="#team">
-          <span className="quick-icon" aria-hidden="true">👥</span><span><b>Send to a team</b><small>One letter, a gift each</small></span><span className="quick-arrow" aria-hidden="true">→</span>
+          <span className="quick-icon" aria-hidden="true">👥</span><span><b>Send to a group</b><small>One letter, a gift each</small></span><span className="quick-arrow" aria-hidden="true">→</span>
         </a>
       </div>
 

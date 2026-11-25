@@ -10,7 +10,12 @@ export function Letter({ from, to, letter, personal, style }: Props) {
     <article className="letter" style={style} aria-label={`Letter from ${from || 'the sender'}`}>
       <div className="card-stripe"/>
       <div className="letter-body">
-        {from.trim() && <p className="letter-from">{from}</p>}
+        {(letter.occasion || from.trim()) && (
+          <div className="letter-top">
+            {letter.occasion && <span className="letter-occasion">{letter.occasion}</span>}
+            {from.trim() && <p className="letter-from">From {from}</p>}
+          </div>
+        )}
         <p className="letter-greeting">Dear {to.trim() || 'you'},</p>
         {letter.body.split(/\n+/).filter(p => p.trim()).map((p, i) => <p key={i}>{p}</p>)}
         {personal.trim() && <p className="letter-personal">{personal}</p>}

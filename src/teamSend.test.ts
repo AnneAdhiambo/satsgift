@@ -44,3 +44,14 @@ test('CSV quotes commas and defuses formulas', () => {
   assert.equal(lines[1], '"Otieno, Jr",500,https://x/#g=1,K7QM-4XPA');
   assert.equal(lines[2], `"'=HYPERLINK(""x"")",1,l,`);
 });
+
+test('occasions: templates, tags and when a letter may be replaced', async () => {
+  const { OCCASIONS, isTemplateLetter, occasionTag } = await import('./occasions.ts');
+  assert.equal(occasionTag('christmas', ''), '🎄 Christmas');
+  assert.equal(occasionTag('other', '  Back to school '), '✨ Back to school');
+  assert.equal(occasionTag('other', ''), '');
+  assert.equal(occasionTag('nope', 'x'), '');
+  assert.ok(isTemplateLetter(OCCASIONS[0].letter));
+  assert.ok(isTemplateLetter('  '));
+  assert.equal(isTemplateLetter('Our own words'), false);
+});

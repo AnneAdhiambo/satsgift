@@ -137,7 +137,7 @@ export function MyGifts({ onUse }: Props) {
           <li key={item.team} className="team-group">
             <details>
               <summary>
-                <span><b>👥 {item.name || 'Team send'}</b> · {item.gifts.length} gifts · {item.gifts.reduce((n, g) => n + g.amount, 0).toLocaleString()} sats</span>
+                <span><b>👥 {item.name || 'Group send'}</b> · {item.gifts.length} gifts · {item.gifts.reduce((n, g) => n + g.amount, 0).toLocaleString()} sats</span>
                 <span className="status-chip">{item.gifts.filter(g => status[g.token] === 'claimed').length}/{item.gifts.length} claimed</span>
               </summary>
               <ul>{item.gifts.map(row)}</ul>
