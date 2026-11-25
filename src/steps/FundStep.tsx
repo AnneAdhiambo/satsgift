@@ -46,7 +46,7 @@ export function FundStep({ token, demo, valid, amount, mint, notice, saving, onD
       <div className="navigation token-navigation">
         <button className="primary" disabled={!valid} onClick={onNext}>Choose a format →</button>
       </div>
-      <MyGifts/>
+      <MyGifts onUse={onFunded}/>
     </div>
   );
 }

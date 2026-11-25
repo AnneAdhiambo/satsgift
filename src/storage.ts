@@ -49,6 +49,11 @@ export function upsertGift(list: SentGift[], gift: SentGift): SentGift[] {
   return [merged, ...list.filter(g => g.token !== gift.token)].sort((a, b) => b.createdAt - a.createdAt);
 }
 
+/** Swap a reclaimed gift for the fresh token that replaced it, in one write so the sats are never missing. */
+export function replaceGift(list: SentGift[], oldToken: string, gift: SentGift): SentGift[] {
+  return upsertGift(list.filter(g => g.token !== oldToken), gift);
+}
+
 // ---------- localStorage access (never throws: private windows can block storage) ----------
 function read(key: string): unknown {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
@@ -81,6 +86,7 @@ export const storage = {
   clearInvoice: () => write(KEY.invoice, null),
   loadGifts: () => parseGifts(read(KEY.gifts)),
   saveGift: (g: SentGift) => writeGifts(upsertGift(parseGifts(read(KEY.gifts)), g)),
+  replaceGift: (oldToken: string, g: SentGift) => writeGifts(replaceGift(parseGifts(read(KEY.gifts)), oldToken, g)),
   removeGift: (token: string) => writeGifts(parseGifts(read(KEY.gifts)).filter(g => g.token !== token)),
   /** True when this browser lets us save at all. */
   available(): boolean { try { localStorage.setItem('satsgift:probe', '1'); localStorage.removeItem('satsgift:probe'); return true; } catch { return false; } },

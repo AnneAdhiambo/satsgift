@@ -124,7 +124,7 @@ export function Recipient({ encoded }: { encoded: string }) {
         <span className="section-tag">{gift.demo ? 'DEMO GIFT · NO REAL FUNDS' : `A GIFT FOR ${(gift.to.trim() || 'YOU').toUpperCase()}`}</span>
         <h2>{from} sent you a little something</h2>
         <p className="muted">{gift.format === 'print' ? 'Here’s your voucher. Claim the sats below.' : gift.format === 'scratch' ? 'Open the envelope, then scratch the foil.' : 'Open the envelope to see your gift.'}</p>
-        {claimed && <p className="claimed-banner" role="status">💌 This gift has already been claimed. If that wasn’t you, let {from} know.</p>}
+        {claimed && <p className="claimed-banner" role="status">💌 This gift has already been claimed, or {from} took it back. If that wasn’t you, let {from} know.</p>}
         <GiftReveal format={gift.format} to={gift.to} card={card} style={style} onRevealed={() => setRevealed(true)} startOpen={unlocked}/>
 
         {revealed && !claimed && (

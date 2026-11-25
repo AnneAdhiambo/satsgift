@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseDraft, parseGifts, parseInvoice, upsertGift, type SentGift } from './storage.ts';
+import { parseDraft, parseGifts, parseInvoice, replaceGift, upsertGift, type SentGift } from './storage.ts';
 
 test('parseDraft repairs bad or missing fields', () => {
   assert.equal(parseDraft(null), null);
@@ -37,4 +37,11 @@ test('upsertGift keeps one entry per token, newest first, original date', () => 
   assert.deepEqual(list.map(x => x.token), ['b', 'a']);
   assert.equal(list[1].to, 'Amina');
   assert.equal(list[1].createdAt, 1);
+});
+
+test('replaceGift swaps a reclaimed gift for its fresh token', () => {
+  const g = (token: string, createdAt: number, to = ''): SentGift => ({ token, amount: 5, mint: 'm', to, from: '', link: to ? 'https://x/#g=1' : '', createdAt });
+  const list = replaceGift([g('old', 1, 'Amina'), g('b', 2)], 'old', g('fresh', 3));
+  assert.deepEqual(list.map(x => x.token), ['fresh', 'b']);
+  assert.equal(list[0].link, '');
 });
