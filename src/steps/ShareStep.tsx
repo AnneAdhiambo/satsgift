@@ -102,7 +102,7 @@ export function ShareStep({ gift, amount, mint, style, notice, onEdit, onCopyBac
                   <button className="secondary" onClick={copyCode}>Copy code</button>
                 </div>
                 <p className="hint">{print
-                  ? `Write the code inside the card, or tell ${name} in person. Don’t print it next to the QR.`
+                  ? `The code prints on its own slip below the voucher. Cut it off and give it to ${name} separately, or send it by SMS.`
                   : `Send the code a different way from the link: an SMS, a call, or tell ${name} in person.`}</p>
               </>
             : <>
@@ -117,7 +117,18 @@ export function ShareStep({ gift, amount, mint, style, notice, onEdit, onCopyBac
       </section>
 
       {print
-        ? <div className="gift-stage">{voucher}</div>
+        ? <div className="gift-stage print-stage">
+            {voucher}
+            {lock?.kind === 'code' && <>
+              <p className="cut-line" aria-hidden="true"><span>✂ cut here</span></p>
+              <section className="code-slip" style={style} aria-label="Code slip">
+                <small>Your SatsGift code{gift.from.trim() ? ` from ${gift.from.trim()}` : ''}</small>
+                <code>{code}</code>
+                <p>Scan the QR on your voucher, then enter this code to open your gift.</p>
+              </section>
+              <p className="warning-line slip-warning">✂ Cut the code slip off before you hand over the voucher, and give them separately.</p>
+            </>}
+          </div>
         : <div className="share-panel">
             <label htmlFor="gift-link">Gift link</label>
             <input id="gift-link" className="link-field" readOnly value={url || linkPlaceholder} onFocus={e => e.currentTarget.select()}/>

@@ -64,3 +64,20 @@
   .handwritten { font-size: 30px; }
   .claim, .claim-guide small { font-size: 11px; }
 }
+
+/* ---------- Printed code slip (locked vouchers) ---------- */
+.print-stage { flex-direction: column; gap: 0; }
+.cut-line { width: 400px; max-width: 100%; margin: 26px 0 18px; border-top: 2px dashed var(--line); color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: center; }
+.cut-line span { position: relative; top: -10px; padding: 0 10px; background: var(--panel); }
+@media print { .cut-line span { background: white; } }
+.code-slip { width: 400px; max-width: 100%; padding: 18px 20px; border: 2px dashed var(--accent-ink); border-radius: 16px; background: var(--paper); color: var(--card-ink); text-align: center; }
+.code-slip small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+.code-slip code { display: block; margin: 8px 0; font: 800 34px/1.2 ui-monospace, Consolas, monospace; letter-spacing: .14em; }
+.code-slip p { margin: 0; font-size: 13px; }
+.slip-warning { max-width: 400px; margin-top: 16px; }
+@media print {
+  .print-stage { display: block; }
+  .cut-line { width: 100%; max-width: 450px; margin: 28px auto 20px; }
+  .code-slip { max-width: 450px; margin: 0 auto; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .slip-warning { display: none !important; }
+}
