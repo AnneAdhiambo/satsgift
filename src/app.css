@@ -365,3 +365,11 @@ label small { color: var(--muted); font-weight: 600; }
   .row-note { grid-column: 1 / -1; }
   .letter-body { padding: 18px 18px 22px; }
 }
+
+/* ---------- Compact fields: boxes sized to their content, not the whole panel ---------- */
+#ln-amount { max-width: 200px; font-size: 20px; font-weight: 700; }
+.token-status { max-width: 440px; }
+.token-input, .paste-preview { max-width: 520px; }
+.invoice-panel { max-width: 560px; }
+.lightning-form .hint { max-width: 520px; }
+#same-amount { max-width: 160px; }
