@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Shell } from './components/Shell';
 import { Builder } from './pages/Builder';
 import { Recipient } from './pages/Recipient';
+import { TeamBuilder } from './pages/TeamBuilder';
 import { GIFT_HASH } from './giftLink';
 
-/** `#g=…` opens the recipient's gift page; anything else is the sender's builder. */
+/** `#g=…` opens the recipient's gift page, `#team` the team send; anything else is the sender's builder. */
 export function App() {
   const [hash, setHash] = useState(location.hash);
   useEffect(() => {
@@ -13,7 +14,7 @@ export function App() {
     return () => removeEventListener('hashchange', onHash);
   }, []);
 
-  return hash.startsWith(GIFT_HASH)
-    ? <Shell tag="You’ve got a gift 🎁"><Recipient encoded={hash.slice(GIFT_HASH.length)}/></Shell>
-    : <Shell><Builder/></Shell>;
+  if (hash.startsWith(GIFT_HASH)) return <Shell tag="You’ve got a gift 🎁"><Recipient encoded={hash.slice(GIFT_HASH.length)}/></Shell>;
+  if (hash === '#team') return <Shell tag="Team send 👥"><TeamBuilder/></Shell>;
+  return <Shell><Builder/></Shell>;
 }

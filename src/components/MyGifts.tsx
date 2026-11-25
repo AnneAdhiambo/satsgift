@@ -7,6 +7,20 @@ const LABEL: Record<Status, string> = { checking: 'Checking…', waiting: 'Waiti
 
 type Props = { onUse?: (token: string) => void };
 
+type Item = { kind: 'one'; gift: SentGift } | { kind: 'team'; team: string; name: string; gifts: SentGift[] };
+/** Keep single gifts as they are; gather each team send's gifts under one entry, where its first gift was. */
+function groupGifts(gifts: SentGift[]): Item[] {
+  const items: Item[] = [];
+  const teams = new Map<string, Extract<Item, { kind: 'team' }>>();
+  for (const g of gifts) {
+    if (!g.team) { items.push({ kind: 'one', gift: g }); continue; }
+    let t = teams.get(g.team);
+    if (!t) { t = { kind: 'team', team: g.team, name: g.teamName ?? '', gifts: [] }; teams.set(g.team, t); items.push(t); }
+    t.gifts.push(g);
+  }
+  return items;
+}
+
 /** Gifts this browser has made, with their claim status from the mint. Doubles as the sender's backup. */
 export function MyGifts({ onUse }: Props) {
   const [gifts, setGifts] = useState<SentGift[]>(() => storage.loadGifts());
@@ -69,6 +83,44 @@ export function MyGifts({ onUse }: Props) {
     catch { setNote('Clipboard unavailable. Select the token and copy it by hand.'); }
   }
 
+  function row(g: SentGift) {
+    const s = status[g.token] ?? 'checking';
+    const sent = !!g.link;
+    const canTakeBack = sent && (s === 'waiting' || s === 'unknown');
+    return (
+      <li key={g.token}>
+        <div className="gift-row">
+          <div>
+            <b>{g.amount.toLocaleString()} sats</b> {sent && g.to ? <>for {g.to}</> : <em>not sent yet</em>}
+            <small>{g.createdAt ? new Date(g.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''}</small>
+          </div>
+          <span className={`status-chip ${s}`}>{!sent && s === 'waiting' ? 'Yours' : LABEL[s]}</span>
+        </div>
+        <div className="gift-row-actions">
+          {!sent && !g.team && s !== 'claimed' && onUse && <button className="text-button" onClick={() => { onUse(g.token); setNote(`${g.amount.toLocaleString()} sats loaded. Carry on to make a new gift.`); }}>Use for a new gift</button>}
+          {s !== 'claimed' && <button className="text-button" onClick={() => copy(g)}>{sent ? 'Copy link' : 'Copy token'}</button>}
+          {s !== 'claimed' && sent && g.code && <button className="text-button" onClick={() => copyCode(g)}>{g.question ? 'Copy answer' : <>Copy code <code>{g.code}</code></>}</button>}
+          {canTakeBack && <button className="text-button" disabled={!!busy} onClick={() => setConfirmTakeBack(g.token)}>{busy === g.token ? 'Taking back…' : 'Take back'}</button>}
+          <button className="text-button danger" onClick={() => remove(g)}>Remove</button>
+        </div>
+        {confirmTakeBack === g.token && (
+          <p className="warning-line" role="alert">
+            Take back {g.amount.toLocaleString()} sats? The link you sent {g.to || 'them'} will stop working.{' '}
+            <button className="text-button" onClick={() => takeBack(g)}>Yes, take it back</button>{' '}
+            <button className="text-button" onClick={() => setConfirmTakeBack('')}>Keep it</button>
+          </p>
+        )}
+        {confirm === g.token && (
+          <p className="error" role="alert">
+            This is your only backup of {g.amount.toLocaleString()} unclaimed sats. Remove anyway?{' '}
+            <button className="text-button danger" onClick={() => remove(g)}>Yes, remove</button>{' '}
+            <button className="text-button" onClick={() => setConfirm('')}>Keep it</button>
+          </p>
+        )}
+      </li>
+    );
+  }
+
   return (
     <section className="my-gifts" aria-labelledby="my-gifts-title">
       <h3 id="my-gifts-title">Your gifts</h3>
@@ -81,43 +133,17 @@ export function MyGifts({ onUse }: Props) {
         </div>
       )}
       <ul>
-        {gifts.map(g => {
-          const s = status[g.token] ?? 'checking';
-          const sent = !!g.link;
-          const canTakeBack = sent && (s === 'waiting' || s === 'unknown');
-          return (
-            <li key={g.token}>
-              <div className="gift-row">
-                <div>
-                  <b>{g.amount.toLocaleString()} sats</b> {sent && g.to ? <>for {g.to}</> : <em>not sent yet</em>}
-                  <small>{g.createdAt ? new Date(g.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''}</small>
-                </div>
-                <span className={`status-chip ${s}`}>{!sent && s === 'waiting' ? 'Yours' : LABEL[s]}</span>
-              </div>
-              <div className="gift-row-actions">
-                {!sent && s !== 'claimed' && onUse && <button className="text-button" onClick={() => { onUse(g.token); setNote(`${g.amount.toLocaleString()} sats loaded. Carry on to make a new gift.`); }}>Use for a new gift</button>}
-                {s !== 'claimed' && <button className="text-button" onClick={() => copy(g)}>{sent ? 'Copy link' : 'Copy token'}</button>}
-                {s !== 'claimed' && sent && g.code && <button className="text-button" onClick={() => copyCode(g)}>{g.question ? 'Copy answer' : <>Copy code <code>{g.code}</code></>}</button>}
-                {canTakeBack && <button className="text-button" disabled={!!busy} onClick={() => setConfirmTakeBack(g.token)}>{busy === g.token ? 'Taking back…' : 'Take back'}</button>}
-                <button className="text-button danger" onClick={() => remove(g)}>Remove</button>
-              </div>
-              {confirmTakeBack === g.token && (
-                <p className="warning-line" role="alert">
-                  Take back {g.amount.toLocaleString()} sats? The link you sent {g.to || 'them'} will stop working.{' '}
-                  <button className="text-button" onClick={() => takeBack(g)}>Yes, take it back</button>{' '}
-                  <button className="text-button" onClick={() => setConfirmTakeBack('')}>Keep it</button>
-                </p>
-              )}
-              {confirm === g.token && (
-                <p className="error" role="alert">
-                  This is your only backup of {g.amount.toLocaleString()} unclaimed sats. Remove anyway?{' '}
-                  <button className="text-button danger" onClick={() => remove(g)}>Yes, remove</button>{' '}
-                  <button className="text-button" onClick={() => setConfirm('')}>Keep it</button>
-                </p>
-              )}
-            </li>
-          );
-        })}
+        {groupGifts(gifts).map(item => item.kind === 'one' ? row(item.gift) : (
+          <li key={item.team} className="team-group">
+            <details>
+              <summary>
+                <span><b>👥 {item.name || 'Team send'}</b> · {item.gifts.length} gifts · {item.gifts.reduce((n, g) => n + g.amount, 0).toLocaleString()} sats</span>
+                <span className="status-chip">{item.gifts.filter(g => status[g.token] === 'claimed').length}/{item.gifts.length} claimed</span>
+              </summary>
+              <ul>{item.gifts.map(row)}</ul>
+            </details>
+          </li>
+        ))}
       </ul>
       <p role="status" className="notice">{note}</p>
     </section>

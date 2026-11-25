@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { DEFAULT_MINT, MAX_SATS, MIN_SATS, MintQuoteState, claimInvoice, createInvoice, invoiceState, mintErrorMessage, type Invoice } from '../mint';
-import { storage } from '../storage';
+import { storage, type InvoiceSlot } from '../storage';
 import { cleanAmount as clean } from '../amount';
 import { MintSteps } from './MintSteps';
 
@@ -16,18 +16,26 @@ const POLL_MS = 2500;
  * Fund a gift by paying a Lightning invoice: create a mint quote, show it as a QR,
  * poll until paid, then mint fresh proofs and hand the token to the parent.
  */
-export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded: (token: string) => void }) {
+type Props = {
+  funded: boolean; onFunded: (token: string) => void;
+  /** Pay exactly this many sats (team sends): hides the amount picker. */
+  fixedAmount?: number;
+  /** Which saved-invoice slot to use, so a team payment and a single gift never collide. */
+  slot?: InvoiceSlot;
+};
+
+export function LightningFund({ funded, onFunded, fixedAmount, slot = 'gift' }: Props) {
   const mint = DEFAULT_MINT;
   const [amount, setAmount] = useState('1000');
   // An invoice saved before a refresh is picked up again, so a payment is never stranded.
-  const [invoice, setInvoice] = useState<Invoice | null>(() => storage.loadInvoice());
+  const [invoice, setInvoice] = useState<Invoice | null>(() => storage.loadInvoice(slot));
   const [phase, setPhase] = useState<Phase>(() => (invoice ? 'waiting' : 'idle'));
   const [resumed] = useState(() => !!invoice);
   const [qr, setQr] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
-  const sats = Number(amount);
-  const amountOk = Number.isInteger(sats) && sats >= MIN_SATS && sats <= MAX_SATS;
+  const sats = fixedAmount ?? Number(amount);
+  const amountOk = fixedAmount !== undefined ? fixedAmount >= MIN_SATS : Number.isInteger(sats) && sats >= MIN_SATS && sats <= MAX_SATS;
 
   useEffect(() => {
     let active = true; setQr('');
@@ -43,7 +51,7 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
       const token = await claimInvoice(inv);
       // Hand over even if this component has unmounted: the sats must not be dropped.
       onFunded(token);
-      storage.clearInvoice();
+      storage.clearInvoice(slot);
       setPhase('done'); setInvoice(null);
     } catch (e) {
       setError(`Your payment arrived, but collecting the sats failed. ${mintErrorMessage(e)}`);
@@ -60,8 +68,8 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
         const state = await invoiceState(invoice);
         if (!active) return;
         if (state === MintQuoteState.PAID) return void claim(invoice);
-        if (state === MintQuoteState.ISSUED) { storage.clearInvoice(); setError('These sats were already collected.'); setPhase('error'); return; }
-        if (invoice.expiry && Date.now() / 1000 > invoice.expiry) { storage.clearInvoice(); setError('This invoice expired. Create a new one.'); setPhase('error'); return; }
+        if (state === MintQuoteState.ISSUED) { storage.clearInvoice(slot); setError('These sats were already collected.'); setPhase('error'); return; }
+        if (invoice.expiry && Date.now() / 1000 > invoice.expiry) { storage.clearInvoice(slot); setError('This invoice expired. Create a new one.'); setPhase('error'); return; }
       } catch { /* network blip: keep polling */ }
       if (active) timer = window.setTimeout(tick, POLL_MS);
     };
@@ -71,10 +79,10 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
 
   async function start() {
     setPhase('creating'); setError(''); setCopied(false);
-    try { const inv = await createInvoice(mint.url, sats); storage.saveInvoice(inv); setInvoice(inv); setPhase('waiting'); }
+    try { const inv = await createInvoice(mint.url, sats); storage.saveInvoice(inv, slot); setInvoice(inv); setPhase('waiting'); }
     catch (e) { setError(mintErrorMessage(e)); setPhase('error'); }
   }
-  function cancel() { storage.clearInvoice(); setInvoice(null); setPhase('idle'); setError(''); }
+  function cancel() { storage.clearInvoice(slot); setInvoice(null); setPhase('idle'); setError(''); }
   async function copyInvoice() {
     if (!invoice) return;
     try { await navigator.clipboard.writeText(invoice.request); setCopied(true); } catch { setCopied(false); }
@@ -117,15 +125,17 @@ export function LightningFund({ funded, onFunded }: { funded: boolean; onFunded:
     <div className="lightning-form">
       <div className="mint-chip"><span aria-hidden="true">🏦</span> Mint: <b>{mint.name}</b>{mint.test && <em>test mint · not real bitcoin</em>}</div>
       {funded && <p className="hint">Your sats are ready below. A new invoice will replace them, so copy the backup token first.</p>}
+      {fixedAmount === undefined && <>
       <label htmlFor="ln-amount">Amount (sats)</label>
       <input id="ln-amount" inputMode="numeric" value={amount} maxLength={String(MAX_SATS).length} onChange={e => setAmount(cleanAmount(e.target.value))} aria-describedby="ln-amount-help"/>
       <div className="message-chips amount-chips">
         {PRESETS.map(p => <button key={p} type="button" aria-pressed={sats === p} className={sats === p ? 'selected' : ''} onClick={() => setAmount(String(p))}>{p.toLocaleString()}</button>)}
       </div>
+      </>}
       <p id="ln-amount-help" className={amountOk || !amount ? 'hint' : 'hint error'} role={amountOk ? undefined : 'alert'}>{amountOk ? (mint.test ? 'Free test sats: Testnut pays this invoice for you within a few seconds.' : 'Pay from any Lightning wallet.') : `Choose between ${MIN_SATS} and ${MAX_SATS.toLocaleString()} sats.`}</p>
       {phase === 'error' && <p className="error" role="alert">{error}</p>}
       <button className="primary" disabled={!amountOk} onClick={start}>
-        Mint ecash 🥜
+        {fixedAmount !== undefined ? `Pay ${fixedAmount.toLocaleString()} sats ⚡` : 'Mint ecash 🥜'}
       </button>
     </div>
   );

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseDraft, parseGifts, parseInvoice, replaceGift, upsertGift, type SentGift } from './storage.ts';
+import { parseDraft, parseGifts, parseInvoice, parseTeamDraft, replaceGift, replaceWithMany, upsertGift, type SentGift } from './storage.ts';
 
 test('parseDraft repairs bad or missing fields', () => {
   assert.equal(parseDraft(null), null);
@@ -44,4 +44,22 @@ test('replaceGift swaps a reclaimed gift for its fresh token', () => {
   const list = replaceGift([g('old', 1, 'Amina'), g('b', 2)], 'old', g('fresh', 3));
   assert.deepEqual(list.map(x => x.token), ['fresh', 'b']);
   assert.equal(list[0].link, '');
+});
+
+test('replaceWithMany swaps a paid token for the team gifts in one go', () => {
+  const g = (token: string, createdAt: number, team = ''): SentGift => ({ token, amount: 5, mint: 'm', to: '', from: '', link: '', team, createdAt });
+  const list = replaceWithMany([g('paid', 1), g('other', 2)], 'paid', [g('a', 3, 't1'), g('b', 4, 't1')]);
+  assert.deepEqual(list.map(x => x.token), ['b', 'a', 'other']);
+  assert.equal(parseGifts(list)[0].team, 't1');
+});
+
+test('parseTeamDraft validates and clamps a stored team send', () => {
+  assert.equal(parseTeamDraft({}), null);
+  const d = parseTeamDraft({ id: 'abc', step: 9, letter: 'x'.repeat(900), format: 'print', recipients: [{ name: 'Juma', sats: 5e9, note: 'hi' }, 'junk'], lock: undefined });
+  assert.ok(d);
+  assert.equal(d.step, 1);
+  assert.equal(d.letter.length, 600);
+  assert.equal(d.format, 'scratch');
+  assert.equal(d.lock, true);
+  assert.deepEqual(d.recipients, [{ name: 'Juma', sats: 100_000, note: 'hi' }]);
 });

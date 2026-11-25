@@ -322,3 +322,38 @@ a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .unlock-form { margin-top: 8px; }
 .unlock-form label { margin-top: 0; }
 .gift-row-actions code { margin-left: 4px; padding: 1px 6px; border-radius: 6px; background: rgb(31 47 74 / .08); font-size: 12px; }
+
+/* ---------- Team send ---------- */
+.team-switch { margin: 0 0 12px; }
+.team-bar { margin-top: 0; }
+.team-letter-input { min-height: 160px; }
+label small { color: var(--muted); font-weight: 600; }
+.team-summary { width: 100%; max-width: 440px; margin: 18px 0 8px; border-collapse: collapse; font-size: 15px; }
+.team-summary td { padding: 8px 0; border-bottom: 1.5px dashed var(--line); }
+.team-summary td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.team-summary .total td { border-bottom: 0; font-size: 18px; font-weight: 800; }
+.team-pay .lock-toggle { margin: 16px 0; }
+.split-panel { margin: 12px 0; }
+.same-amount { margin: 8px 0 12px; }
+.same-amount > div { display: flex; gap: 10px; max-width: 360px; }
+.team-rows { list-style: none; margin: 8px 0 14px; padding: 0; display: grid; gap: 10px; }
+.team-row-edit { display: flex; align-items: center; gap: 10px; }
+.row-number { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--sand-deep); color: var(--muted); font-size: 13px; font-weight: 800; }
+.row-fields { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .6fr) minmax(0, 2fr); gap: 8px; }
+.row-fields input { padding: 10px 12px; font-size: 15px; }
+.team-total { margin: 14px 0 0; font-size: 15px; }
+.team-send-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
+.team-send-list li { padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 14px; }
+.team-send-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.team-send-head span { color: var(--muted); font-size: 14px; }
+.team-send-head code { margin-left: auto; padding: 2px 8px; border-radius: 8px; background: var(--sand); font: 700 14px ui-monospace, Consolas, monospace; letter-spacing: .08em; }
+.team-send-list .share-actions { margin-top: 10px; }
+.team-send-list .share-actions > * { padding: 8px 12px; font-size: 13px; }
+.my-gifts li.team-group { padding: 0; }
+.team-group summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; cursor: pointer; font-size: 14px; }
+.team-group details ul { margin: 0; padding: 0 10px 10px; }
+@media (max-width: 640px) {
+  .row-fields { grid-template-columns: minmax(0, 1fr) 90px; }
+  .row-note { grid-column: 1 / -1; }
+  .letter-body { padding: 18px 18px 22px; }
+}

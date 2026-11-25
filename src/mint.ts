@@ -1,4 +1,5 @@
 // Everything that talks to a Cashu mint lives here.
+import { assignProofs, powersOfTwo } from './teamSend.ts';
 import { Wallet, getEncodedToken, getDecodedToken, getTokenMetadata, MintQuoteState, MeltQuoteState, CheckStateEnum, type MeltQuoteBolt11Response, type Proof } from '@cashu/cashu-ts';
 
 export type MintOption = { url: string; name: string; test: boolean };
@@ -159,3 +160,27 @@ export async function paymentState(mintUrl: string, quoteId: string): Promise<Me
   return (await wallet.checkMeltQuoteBolt11(quoteId)).state;
 }
 export { MeltQuoteState };
+
+// ---------- Team send: one paid token → one gift per recipient ----------
+
+/**
+ * Swap a paid token at the mint for exactly the coins each recipient needs, in one call,
+ * then group them into one token per recipient. What's left (the SatsGift fee, minus the
+ * mint's own swap fee) comes back as `leftover`.
+ */
+export async function splitForTeam(token: string, amounts: number[]): Promise<{ tokens: string[]; leftover: string | null; leftoverAmount: number }> {
+  const g = await giftProofs(token);
+  const total = amounts.reduce((s, a) => s + a, 0);
+  if (total + g.inputFee > g.available) throw new Error('NOT_ENOUGH');
+  let res;
+  try { res = await g.wallet.send(total, g.proofs, {}, { send: { type: 'random', denominations: amounts.flatMap(powersOfTwo) } }); }
+  catch (e) {
+    if (e instanceof Error && /already spent/i.test(e.message)) throw new Error('SPENT');
+    throw e;
+  }
+  const coins = [...res.send, ...res.keep].map(proof => ({ proof, amount: proof.amount.toNumber() }));
+  const { gifts, leftover } = assignProofs(coins, amounts);
+  const encode = (proofs: Proof[]) => getEncodedToken({ mint: g.mint, proofs, unit: 'sat' }, { removeDleq: true });
+  const leftoverAmount = leftover.reduce((s, c) => s + c.amount, 0);
+  return { tokens: gifts.map(gift => encode(gift.map(c => c.proof))), leftover: leftoverAmount ? encode(leftover.map(c => c.proof)) : null, leftoverAmount };
+}

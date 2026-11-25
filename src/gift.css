@@ -81,3 +81,17 @@
   .code-slip { max-width: 450px; margin: 0 auto; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .slip-warning { display: none !important; }
 }
+
+/* ---------- Letter (team sends) ---------- */
+.envelope-from { position: absolute; top: 12px; right: 14px; max-width: 45%; padding: 3px 8px; border-radius: 99px; background: var(--paper); color: var(--accent-ink); font: 700 11px var(--font-body); letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.letter-stage { display: grid; justify-items: center; gap: 18px; width: 100%; }
+.letter { width: 440px; max-width: 100%; overflow: hidden; border-radius: 6px 6px 16px 16px; background: var(--paper); color: var(--card-ink); text-align: left; box-shadow: 0 22px 50px -18px rgb(31 47 74 / .45); animation: letter-rise .6s ease-out; }
+.letter-body { padding: 22px 28px 26px; background: repeating-linear-gradient(transparent 0 33px, color-mix(in srgb, var(--accent) 14%, transparent) 33px 34px); }
+.letter-body p { margin: 0 0 10px; font: 600 23px/34px var(--font-hand); overflow-wrap: anywhere; }
+.letter-body .letter-from { margin-bottom: 14px; font: 700 12px/1.4 var(--font-body); letter-spacing: .2em; text-transform: uppercase; color: var(--accent-ink); }
+.letter-body .letter-greeting { font-size: 27px; }
+.letter-body .letter-personal { padding: 0 8px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.letter-body .letter-sign { margin: 16px 0 0; text-align: right; font-size: 27px; }
+.letter-body .letter-company { margin: 0; text-align: right; font: 600 13px var(--font-body); opacity: .75; }
+@keyframes letter-rise { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .letter { animation: none; } }

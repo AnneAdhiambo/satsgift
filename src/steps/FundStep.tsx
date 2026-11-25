@@ -18,6 +18,7 @@ export function FundStep({ token, demo, valid, amount, mint, notice, saving, onD
       <h2>Get your Cashu ecash</h2>
       <p className="muted">Mint fresh ecash from a Cashu mint, or paste a Cashu token you already have. Everything happens in this browser.</p>
       <p className="demo-bar">✨ Just exploring? <button className="text-button" onClick={onDemo}>Try a demo gift</button> No sats needed: walk through the card, the scratch-off and the M-Pesa claim.</p>
+      <p className="demo-bar team-bar">👥 Sending to a whole team? <a className="text-button" href="#team">Send to a team</a> One payment, one letter, and a gift for each person.</p>
 
       <div className="fund-tabs" role="tablist" aria-label="How to add sats">
         <button role="tab" id="tab-lightning" aria-controls="panel-lightning" aria-selected={tab === 'lightning'} onClick={() => setTab('lightning')}>🥜 Mint Cashu ecash</button>

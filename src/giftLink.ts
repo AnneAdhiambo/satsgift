@@ -3,6 +3,7 @@
 // A locked gift carries its token and message encrypted (see giftLock.ts); names, theme and format stay readable.
 import { formats, themes, type Format, type Theme } from './themes.ts';
 import { seal, unseal, type LockKind, type Sealed } from './giftLock.ts';
+import { LETTER_MAX, SIGNED_BY_MAX } from './teamSend.ts';
 
 export type Gift = {
   token: string;      // cashuA/B token; empty for demo gifts and for locked gifts until unlocked
@@ -10,14 +11,25 @@ export type Gift = {
   to: string; from: string; message: string;
   theme: Theme; format: Format;
   sealed?: Sealed;    // present on a decoded gift that still needs its code
+  letter?: Letter;    // team sends: a longer letter shown before the card
 };
+/** A letter from the sender (e.g. a company to its team). The gift's `message` holds the personal line. */
+export type Letter = { body: string; signedBy: string };
 /** How the sender locks a gift: a generated code, or an answer to their own question. */
 export type Lock = { kind: LockKind; secret: string; question: string };
 
 export const GIFT_HASH = '#g=';
 type WireLock = { k: LockKind; q?: string; s: string; i: string; c: string };
-type Wire = { v: 1; t?: string; d?: 1; to: string; fr: string; m?: string; th: string; f: string; x?: WireLock };
-type Secret = { t?: string; m: string };
+type WireLetter = { b: string; s?: string };
+type Wire = { v: 1; t?: string; d?: 1; to: string; fr: string; m?: string; l?: WireLetter; th: string; f: string; x?: WireLock };
+type Secret = { t?: string; m: string; l?: WireLetter };
+
+const toWireLetter = (l?: Letter): WireLetter | undefined => l && l.body.trim() ? (l.signedBy.trim() ? { b: l.body, s: l.signedBy } : { b: l.body }) : undefined;
+function fromWireLetter(l: unknown): Letter | undefined {
+  if (!l || typeof l !== 'object') return undefined;
+  const body = text((l as WireLetter).b, LETTER_MAX);
+  return body.trim() ? { body, signedBy: text((l as WireLetter).s, SIGNED_BY_MAX) } : undefined;
+}
 
 async function pipe(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {
   const out = new Blob([bytes as BlobPart]).stream().pipeThrough(stream);
@@ -40,6 +52,8 @@ export async function encodeGift(gift: Gift, lock?: Lock | null): Promise<string
   if (gift.demo) wire.d = 1;
   const secret: Secret = { m: gift.message };
   if (!gift.demo) secret.t = gift.token;
+  const letter = toWireLetter(gift.letter);
+  if (letter) secret.l = letter;
   if (lock) {
     const s = await seal(JSON.stringify(secret), lock.kind, lock.secret, lock.question.slice(0, QUESTION_MAX));
     wire.x = { k: s.kind, s: s.salt, i: s.iv, c: s.data };
@@ -71,7 +85,8 @@ export async function decodeGift(encoded: string): Promise<Gift> {
     return { ...base, token: '', message: '', sealed: { kind: x.k, question: text(x.q, QUESTION_MAX), salt: x.s, iv: x.i, data: x.c } };
   }
   if (!demo && typeof wire.t !== 'string') throw new Error('This gift link has no sats inside.');
-  return { ...base, token: demo ? '' : wire.t!, message: text(wire.m, 140) };
+  const letter = fromWireLetter(wire.l);
+  return { ...base, token: demo ? '' : wire.t!, message: text(wire.m, 140), ...(letter && { letter }) };
 }
 
 /** Open a locked gift with its code. Throws WrongSecret for a wrong code. */
@@ -82,7 +97,8 @@ export async function unlockGift(gift: Gift, secret: string): Promise<Gift> {
   try { inner = JSON.parse(plain); } catch { throw new Error('This gift link looks damaged. Ask the sender to share it again.'); }
   if (!gift.demo && typeof inner.t !== 'string') throw new Error('This gift link has no sats inside.');
   const { sealed: _, ...rest } = gift;
-  return { ...rest, token: gift.demo ? '' : inner.t!, message: text(inner.m, 140) };
+  const letter = fromWireLetter(inner.l);
+  return { ...rest, token: gift.demo ? '' : inner.t!, message: text(inner.m, 140), ...(letter && { letter }) };
 }
 
 /** Full shareable URL for the current page. */

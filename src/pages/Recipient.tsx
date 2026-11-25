@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { GiftCard, type CardCode } from '../components/GiftCard';
 import { GiftReveal } from '../components/GiftReveal';
 import { LightningClaim } from '../components/LightningClaim';
+import { Letter } from '../components/Letter';
 import { decodeGift, unlockGift, type Gift } from '../giftLink';
 import { WrongSecret } from '../giftLock';
 import { tokenClaimed } from '../mint';
@@ -87,6 +88,7 @@ export function Recipient({ encoded }: { encoded: string }) {
           <div className="gift-stage">
             <div className="reveal-envelope locked-envelope" style={themeStyle(locked.theme)} aria-hidden="true">
               <span className="envelope-flap"/><span className="envelope-seal">🔒</span>
+              {locked.from.trim() && <span className="envelope-from">From {locked.from}</span>}
               <span className="envelope-to">For {locked.to || 'someone special'}</span>
             </div>
           </div>
@@ -125,7 +127,9 @@ export function Recipient({ encoded }: { encoded: string }) {
         <h2>{from} sent you a little something</h2>
         <p className="muted">{gift.format === 'print' ? 'Here’s your voucher. Claim the sats below.' : gift.format === 'scratch' ? 'Open the envelope, then scratch the foil.' : 'Open the envelope to see your gift.'}</p>
         {claimed && <p className="claimed-banner" role="status">💌 This gift has already been claimed, or {from} took it back. If that wasn’t you, let {from} know.</p>}
-        <GiftReveal format={gift.format} to={gift.to} card={card} style={style} onRevealed={() => setRevealed(true)} startOpen={unlocked}/>
+        <GiftReveal format={gift.format} to={gift.to} card={card} style={style} onRevealed={() => setRevealed(true)} startOpen={unlocked}
+          from={gift.letter ? gift.from : undefined}
+          letter={gift.letter && <Letter from={gift.from} to={gift.to} letter={gift.letter} personal={gift.message} style={style}/>}/>
 
         {revealed && !claimed && (
           <section className="claim-panel" aria-labelledby="claim-title">
