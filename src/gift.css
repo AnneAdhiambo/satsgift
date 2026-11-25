@@ -101,3 +101,20 @@
 .letter-body .letter-top .letter-from { margin: 0; }
 .letter-occasion { display: inline-block; padding: 4px 12px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-ink); font: 700 13px var(--font-body); }
 .envelope-occasion { position: absolute; top: 12px; left: 14px; max-width: 45%; padding: 3px 9px; border-radius: 99px; background: var(--paper); color: var(--accent-ink); font: 700 12px var(--font-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Signed group card ---------- */
+.signed-card { width: 560px; }
+.signed-card-body { padding: 22px 24px 26px; }
+.signed-card-to { margin: 4px 0 16px; font: 700 34px/1.1 var(--font-hand); text-align: center; color: var(--accent-ink); }
+.signed-card-empty { margin: 18px 0 6px; text-align: center; font: 600 22px var(--font-hand); opacity: .6; }
+.signed-messages { list-style: none; margin: 0; padding: 0; columns: 2 220px; column-gap: 14px; }
+.signed-messages li { position: relative; break-inside: avoid; margin: 0 0 14px; padding: 14px 14px 10px; border-radius: 12px; background: color-mix(in srgb, var(--paper) 70%, white); box-shadow: 0 1px 0 rgb(0 0 0 / .06), 0 6px 14px -10px rgb(31 47 74 / .4); color: var(--pen); transform: rotate(-.8deg); }
+.signed-messages li:nth-child(even) { transform: rotate(.9deg); }
+.signed-messages li.is-hidden { opacity: .4; }
+.msg-sticker { position: absolute; top: -12px; right: -6px; font-size: 26px; transform: rotate(12deg); }
+.msg-text { margin: 0; font: 600 22px/1.25 var(--font-hand); white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg-name { margin: 8px 0 0; font: 700 18px var(--font-hand); text-align: right; }
+.msg-name::before { content: "— "; }
+.msg-admin { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgb(0 0 0 / .12); color: var(--muted); font: 600 12px var(--font-body); }
+.msg-admin .text-button { padding: 0; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { .signed-messages li, .signed-messages li:nth-child(even) { transform: none; } }

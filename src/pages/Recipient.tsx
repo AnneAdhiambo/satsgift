@@ -4,6 +4,8 @@ import { GiftCard, type CardCode } from '../components/GiftCard';
 import { GiftReveal } from '../components/GiftReveal';
 import { LightningClaim } from '../components/LightningClaim';
 import { Letter } from '../components/Letter';
+import { SignedCard, type ShownMessage } from '../components/SignedCard';
+import type { CardHeader } from '../card';
 import { decodeGift, unlockGift, type Gift } from '../giftLink';
 import { WrongSecret } from '../giftLock';
 import { tokenClaimed } from '../mint';
@@ -15,7 +17,8 @@ type State = { status: 'loading' } | { status: 'error'; message: string } | { st
 
 const damaged = (e: unknown) => e instanceof Error && !/cashu/i.test(e.message) ? e.message : 'This gift link looks damaged. Ask the sender to share it again.';
 
-export function Recipient({ encoded }: { encoded: string }) {
+/** `groupCard`: a group card's header and messages, shown as the letter (see GroupCard.tsx). */
+export function Recipient({ encoded, groupCard }: { encoded: string; groupCard?: { header: CardHeader; messages: ShownMessage[] } }) {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [claimed, setClaimed] = useState<boolean | null>(null); // null = unknown
   const [qr, setQr] = useState('');
@@ -128,8 +131,9 @@ export function Recipient({ encoded }: { encoded: string }) {
         <p className="muted">{gift.format === 'print' ? 'Here’s your voucher. Claim the sats below.' : gift.format === 'scratch' ? 'Open the envelope, then scratch the foil.' : 'Open the envelope to see your gift.'}</p>
         {claimed && <p className="claimed-banner" role="status">💌 This gift has already been claimed, or {from} took it back. If that wasn’t you, let {from} know.</p>}
         <GiftReveal format={gift.format} to={gift.to} card={card} style={style} onRevealed={() => setRevealed(true)} startOpen={unlocked}
-          from={gift.letter ? gift.from : undefined} occasion={gift.letter?.occasion}
-          letter={gift.letter && <Letter from={gift.from} to={gift.to} letter={gift.letter} personal={gift.message} style={style}/>}/>
+          from={groupCard ? groupCard.header.from : gift.letter ? gift.from : undefined} occasion={groupCard ? groupCard.header.occasion : gift.letter?.occasion}
+          letter={groupCard ? <SignedCard header={groupCard.header} messages={groupCard.messages} style={style}/>
+            : gift.letter && <Letter from={gift.from} to={gift.to} letter={gift.letter} personal={gift.message} style={style}/>}/>
 
         {revealed && !claimed && (
           <section className="claim-panel" aria-labelledby="claim-title">

@@ -184,3 +184,38 @@ export async function splitForTeam(token: string, amounts: number[]): Promise<{ 
   const leftoverAmount = leftover.reduce((s, c) => s + c.amount, 0);
   return { tokens: gifts.map(gift => encode(gift.map(c => c.proof))), leftover: leftoverAmount ? encode(leftover.map(c => c.proof)) : null, leftoverAmount };
 }
+
+// ---------- Group cards: many contributors' tokens → one pot ----------
+
+/**
+ * Receive each contributor's token into fresh proofs and combine them into one token.
+ * A token someone already took back (spent) is skipped and counted, never fatal.
+ */
+export async function collectTokens(tokens: string[]): Promise<{ token: string | null; amount: number; takenBack: number }> {
+  const proofs: Proof[] = [];
+  let mint = '', takenBack = 0;
+  for (const token of tokens) {
+    const meta = getTokenMetadata(token);
+    if (!findMint(meta.mint)) { takenBack++; continue; }
+    if (mint && meta.mint !== mint) { takenBack++; continue; } // one mint per pot
+    mint = meta.mint;
+    const wallet = await getWallet(meta.mint);
+    try { proofs.push(...await wallet.receive(token)); }
+    catch (e) {
+      if (e instanceof Error && /already spent/i.test(e.message)) { takenBack++; continue; }
+      throw e;
+    }
+  }
+  if (!proofs.length) return { token: null, amount: 0, takenBack };
+  return { token: getEncodedToken({ mint, proofs, unit: 'sat' }, { removeDleq: true }), amount: sum(proofs), takenBack };
+}
+
+/** Split a fee off a token; the rest becomes the gift. In test mode the fee part is set aside. */
+export async function takeFee(token: string, fee: number): Promise<{ token: string; amount: number }> {
+  if (fee <= 0) return { token, amount: getTokenMetadata(token).amount.toNumber() };
+  const g = await giftProofs(token);
+  const gift = g.available - g.inputFee - fee;
+  if (gift < 1) throw new Error('TOO_SMALL');
+  const res = await g.wallet.send(gift, g.proofs);
+  return { token: getEncodedToken({ mint: g.mint, proofs: res.send, unit: 'sat' }, { removeDleq: true }), amount: sum(res.send) };
+}

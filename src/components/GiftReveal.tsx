@@ -12,10 +12,12 @@ type Props = {
   from?: string;
   /** e.g. "🎄 Christmas", shown on the envelope. */
   occasion?: string;
+  /** Button under the letter; defaults to "Scratch to reveal…" / "See your gift". */
+  continueLabel?: string;
 };
 
 /** Envelope → (letter) → card or scratch card. Printed vouchers skip the envelope. Remount with a new `key` to replay. */
-export function GiftReveal({ format, to, card, style, onRevealed, startOpen = false, letter, from, occasion }: Props) {
+export function GiftReveal({ format, to, card, style, onRevealed, startOpen = false, letter, from, occasion, continueLabel }: Props) {
   const [opened, setOpened] = useState(startOpen);
   const [letterRead, setLetterRead] = useState(!letter);
   const open = opened || format === 'print';
@@ -34,7 +36,7 @@ export function GiftReveal({ format, to, card, style, onRevealed, startOpen = fa
         : !letterRead
           ? <div className="letter-stage">
               {letter}
-              <button className="primary" onClick={() => setLetterRead(true)}>{format === 'scratch' ? 'Scratch to reveal your gift ↓' : 'See your gift ↓'}</button>
+              <button className="primary" onClick={() => setLetterRead(true)}>{continueLabel ?? (format === 'scratch' ? 'Scratch to reveal your gift ↓' : 'See your gift ↓')}</button>
             </div>
           : format === 'scratch' ? <Scratch onReveal={onRevealed}>{card}</Scratch> : card}
     </div>

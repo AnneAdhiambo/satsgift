@@ -4,9 +4,9 @@ import { formats, themes, type Format, type Theme } from './themes.ts';
 import { DEFAULT_OCCASION, OCCASION_LABEL_MAX, findOccasion } from './occasions.ts';
 import { LETTER_MAX, NAME_MAX, NOTE_MAX, SIGNED_BY_MAX, TEAM_MAX_RECIPIENTS, TEAM_MAX_SATS_EACH, type TeamRecipient } from './teamSend.ts';
 
-const KEY = { draft: 'satsgift:v1:draft', invoice: 'satsgift:v1:invoice', teamInvoice: 'satsgift:v1:team-invoice', gifts: 'satsgift:v1:gifts', team: 'satsgift:v1:team' } as const;
-export type InvoiceSlot = 'gift' | 'team';
-const invoiceKey = (slot: InvoiceSlot) => slot === 'team' ? KEY.teamInvoice : KEY.invoice;
+const KEY = { draft: 'satsgift:v1:draft', invoice: 'satsgift:v1:invoice', teamInvoice: 'satsgift:v1:team-invoice', cardInvoice: 'satsgift:v1:card-invoice', gifts: 'satsgift:v1:gifts', team: 'satsgift:v1:team', cards: 'satsgift:v1:cards' } as const;
+export type InvoiceSlot = 'gift' | 'team' | 'card';
+const invoiceKey = (slot: InvoiceSlot) => slot === 'team' ? KEY.teamInvoice : slot === 'card' ? KEY.cardInvoice : KEY.invoice;
 
 export type Draft = {
   step: number; token: string; demo: boolean;
@@ -65,6 +65,18 @@ export function replaceGift(list: SentGift[], oldToken: string, gift: SentGift):
   return upsertGift(list.filter(g => g.token !== oldToken), gift);
 }
 
+/** A group card this browser organises. `orgUrl` is the private organiser link: the only way back in. */
+export type MyCard = { id: string; orgUrl: string; to: string; occasion: string; createdAt: number; recipientUrl?: string; code?: string };
+export function parseCards(raw: unknown): MyCard[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap(c => {
+    const d = obj(c);
+    if (!d || typeof d.id !== 'string' || typeof d.orgUrl !== 'string') return [];
+    return [{ id: d.id.slice(0, 20), orgUrl: str(d.orgUrl, 500), to: str(d.to, 50), occasion: str(d.occasion, 60), createdAt: typeof d.createdAt === 'number' ? d.createdAt : 0,
+      ...(typeof d.recipientUrl === 'string' && { recipientUrl: str(d.recipientUrl, 500) }), ...(typeof d.code === 'string' && { code: str(d.code, 20) }) }];
+  });
+}
+
 /** Swap one token for several (a team split) in one write. */
 export function replaceWithMany(list: SentGift[], oldToken: string, gifts: SentGift[]): SentGift[] {
   return gifts.reduce(upsertGift, list.filter(g => g.token !== oldToken));
@@ -116,6 +128,8 @@ export const storage = {
   loadInvoice: (slot: InvoiceSlot = 'gift') => parseInvoice(read(invoiceKey(slot))),
   saveInvoice: (i: PendingInvoice, slot: InvoiceSlot = 'gift') => write(invoiceKey(slot), i),
   clearInvoice: (slot: InvoiceSlot = 'gift') => write(invoiceKey(slot), null),
+  loadCards: () => parseCards(read(KEY.cards)),
+  saveCard: (c: MyCard) => write(KEY.cards, [c, ...parseCards(read(KEY.cards)).filter(x => x.id !== c.id)]),
   loadTeam: () => parseTeamDraft(read(KEY.team)),
   saveTeam: (t: TeamDraft) => write(KEY.team, t),
   clearTeam: () => write(KEY.team, null),
