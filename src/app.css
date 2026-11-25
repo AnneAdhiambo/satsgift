@@ -115,9 +115,17 @@ input[readonly] { background: var(--sand); color: var(--muted); }
 .fund-tabs button { border: 0; border-radius: 99px; padding: 8px 16px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 700; transition: background-color .2s, color .2s; }
 .fund-tabs button[aria-selected="true"] { background: var(--ink); color: var(--white); }
 .hint { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
-.quick-links { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px; }
-.quick-link { display: inline-flex; align-items: center; padding: 6px 12px; border: 1.5px solid transparent; border-radius: 99px; background: var(--sun-tint); color: #5a3d00; font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; transition: border-color .2s; }
-.quick-link:hover, .quick-link:focus-visible { border-color: var(--sun-deep); }
+.quick-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 520px; margin: -4px 0 20px; }
+.quick-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 2px solid var(--sun); border-radius: 16px; background: var(--sun-tint); color: #5a3d00; text-align: left; text-decoration: none; cursor: pointer; box-shadow: 0 3px 0 var(--sun); transition: transform .15s, box-shadow .15s; }
+.quick-link.team { border-color: var(--lagoon); background: var(--lagoon-tint); color: var(--lagoon-deep); box-shadow: 0 3px 0 var(--lagoon); }
+.quick-link:hover, .quick-link:focus-visible { transform: translateY(-2px); box-shadow: 0 5px 0 var(--sun-deep); }
+.quick-link.team:hover, .quick-link.team:focus-visible { box-shadow: 0 5px 0 var(--lagoon-deep); }
+.quick-icon { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--white); font-size: 18px; }
+.quick-link b { display: block; font-size: 15px; line-height: 1.2; }
+.quick-link small { display: block; font-size: 12px; font-weight: 600; opacity: .8; }
+.quick-arrow { margin-left: auto; font-weight: 800; }
+@media (max-width: 420px) { .quick-links { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .quick-link { transition: none; } }
 .mode-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .mode-chips button { padding: 8px 14px; border: 1.5px solid var(--line); border-radius: 99px; background: var(--white); color: var(--ink); font-size: 14px; font-weight: 700; }
 .mode-chips button.selected { border-color: var(--ink); background: var(--ink); color: var(--white); }
