@@ -404,3 +404,10 @@ label small { color: var(--muted); font-weight: 600; }
   .fund-footer .cashu-explainer { max-width: none; }
   .scribble::before { display: none; }
 }
+
+/* Amount block centred under the tabs and mint chip. */
+.token-editor .lightning-form { text-align: center; }
+.token-editor .lightning-form label { justify-content: center; }
+.token-editor #ln-amount { display: block; margin: 0 auto; text-align: center; }
+.token-editor .lightning-form .amount-chips { justify-content: center; }
+.token-editor .lightning-form .hint, .token-editor .lightning-form .error { margin-left: auto; margin-right: auto; }
