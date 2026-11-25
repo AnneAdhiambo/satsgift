@@ -192,14 +192,19 @@ export async function handle(request: Request, store: Store, now = () => Date.no
 
 // ---------- Vercel entry points ----------
 declare const process: { env: Record<string, string | undefined> } | undefined;
-let cached: Store | undefined;
-function defaultStore(): Store {
-  if (cached) return cached;
+let cached: Store | null | undefined;
+/** The database from env vars. On Vercel there is no fallback: memory there is wiped between requests. */
+function defaultStore(): Store | null {
+  if (cached !== undefined) return cached;
   const env = typeof process !== 'undefined' ? process.env : {};
   const url = env.KV_REST_API_URL ?? env.UPSTASH_REDIS_REST_URL;
   const token = env.KV_REST_API_TOKEN ?? env.UPSTASH_REDIS_REST_TOKEN;
-  cached = url && token ? redisStore(url, token) : memoryStore();
+  cached = url && token ? redisStore(url, token) : env.VERCEL ? null : memoryStore();
   return cached;
 }
-export const GET = (request: Request) => handle(request, defaultStore());
-export const POST = (request: Request) => handle(request, defaultStore());
+const serve = (request: Request) => {
+  const store = defaultStore();
+  return store ? handle(request, store) : Promise.resolve(fail(503, 'Group cards aren’t set up on this site yet (no database connected).'));
+};
+export const GET = serve;
+export const POST = serve;
